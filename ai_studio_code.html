@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WPS AI Video - 轻松搞定视频</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background-color: #f8fafc; margin: 0; padding: 0; }
+        .wps-gradient { background: linear-gradient(135deg, #0052cc 0%, #00a3ff 100%); }
+        .glass-card { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border: 1px solid rgba(226, 232, 240, 0.8); }
+        .tab-active { color: #0052cc; border-bottom: 2px solid #0052cc; font-weight: 600; }
+        .input-shadow { box-shadow: 0 10px 40px -10px rgba(0, 82, 204, 0.1); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+
+        /* 比例图标样式 */
+        .ratio-box { border: 1.5px solid #cbd5e1; border-radius: 3px; display: inline-block; transition: all 0.2s; }
+        .ratio-item.active .ratio-box { border-color: #1e293b; background: #1e293b; }
+        .ratio-item.active { background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); color: #1e293b; font-weight: 600; }
+
+        /* 下拉面板 */
+        .dropdown-panel { display: none; position: absolute; bottom: calc(100% + 12px); left: 0; z-index: 100; min-width: 300px; animation: slideUp 0.2s ease-out; }
+        .show { display: block; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 帧上传预览 */
+        .frame-box { position: relative; overflow: hidden; }
+        .frame-box img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 0.5rem; }
+        .frame-clear { position: absolute; top: -2px; right: -2px; width: 18px; height: 18px; background: #ef4444; color: white; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 5; border: 2px solid white; line-height: 1; }
+        .frame-clear:hover { background: #dc2626; }
+
+        /* 视频模态框 */
+        .video-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; display: none; align-items: center; justify-content: center; animation: fadeIn 0.2s ease; }
+        .video-modal-overlay.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* 进度条动画 */
+        @keyframes progressPulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+        .progress-pulse { animation: progressPulse 2s infinite; }
+
+        /* 旋转加载 */
+        @keyframes spin360 { to { transform: rotate(360deg); } }
+        .loader-ring { width: 48px; height: 48px; border: 3px solid rgba(255,255,255,0.15); border-top-color: #3b82f6; border-radius: 50%; animation: spin360 1s linear infinite; }
+
+        /* 对话气泡 */
+        .chat-user { background: linear-gradient(135deg, #eff6ff, #dbeafe); border-radius: 20px 20px 4px 20px; }
+        .chat-ai { background: white; border-radius: 20px 20px 20px 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+
+        /* Pexels卡片悬浮操作 */
+        .pexels-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0) 100%); opacity: 0; transition: opacity 0.3s; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+        .pexels-card:hover .pexels-overlay { opacity: 1; }
+        .pexels-btn { padding: 8px 20px; border-radius: 9999px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
+        .pexels-btn-preview { background: rgba(255,255,255,0.95); color: #1e293b; }
+        .pexels-btn-preview:hover { background: white; transform: scale(1.05); }
+        .pexels-btn-play { background: rgba(255,255,255,0.2); color: white; backdrop-filter: blur(4px); }
+        .pexels-btn-play:hover { background: rgba(255,255,255,0.3); transform: scale(1.05); }
+
+        /* 时长下拉选中态 */
+        .time-option { cursor: pointer; transition: all 0.15s; }
+        .time-option.active { background: #f1f5f9; font-weight: 600; }
+        .time-option .check-icon { display: none; }
+        .time-option.active .check-icon { display: inline; }
+    </style>
+</head>
+<body>
+
+    <!-- ===== 隐藏的文件输入 ===== -->
+    <input type="file" id="first-frame-input" accept="image/*" class="hidden" onchange="handleFrameUpload('first', this)">
+    <input type="file" id="last-frame-input" accept="image/*" class="hidden" onchange="handleFrameUpload('last', this)">
+
+    <!-- ===== 1. 全局导航栏 ===== -->
+    <nav class="flex items-center justify-between px-8 py-4 bg-white border-b sticky top-0 z-50">
+        <div class="flex items-center space-x-2 cursor-pointer" onclick="showPage('home')">
+            <div class="w-8 h-8 wps-gradient rounded-lg flex items-center justify-center text-white font-bold italic shadow-lg">W</div>
+            <span class="text-xl font-bold text-slate-800">WPS AI Video</span>
+        </div>
+        <div class="flex items-center space-x-6 text-sm font-medium text-slate-600">
+            <button onclick="showPage('home')" class="hover:text-blue-600">发现</button>
+            <button onclick="showPage('home'); switchTab('my-videos')" class="hover:text-blue-600">我的作品</button>
+            <div class="w-8 h-8 rounded-full bg-slate-100 border flex items-center justify-center text-slate-400"><i class="fa-solid fa-user text-xs"></i></div>
+        </div>
+    </nav>
+
+    <!-- ===== 2. 首页 (Home Page) ===== -->
+    <main id="home-page" style="display: block;">
+
+        <!-- A. 核心输入区 -->
+        <section class="max-w-[1000px] mx-auto mt-12 mb-16 text-center px-4">
+            <h1 class="text-4xl font-bold text-slate-900 mb-8">WPS AI Video轻松搞定视频</h1>
+
+            <div class="bg-white rounded-[2rem] p-5 input-shadow border border-slate-100 text-left relative">
+                <!-- 首尾帧与文本 -->
+                <div class="flex items-start space-x-6 mb-6 px-2 pt-2">
+                    <div class="flex items-center space-x-2 shrink-0">
+                        <div id="first-frame-box" onclick="document.getElementById('first-frame-input').click()" class="frame-box w-[72px] h-[92px] bg-[#f8f9fa] border border-slate-200 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition text-slate-400 transform -rotate-3 shadow-sm">
+                            <i class="fa-solid fa-plus text-xl mb-1"></i><span class="text-[11px]">首帧</span>
+                        </div>
+                        <div class="text-slate-300 mx-0.5"><i class="fa-solid fa-arrow-right-arrow-left text-xs"></i></div>
+                        <div id="last-frame-box" onclick="document.getElementById('last-frame-input').click()" class="frame-box w-[72px] h-[92px] bg-[#f8f9fa] border border-slate-200 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition text-slate-400 transform rotate-3 shadow-sm">
+                            <i class="fa-solid fa-plus text-xl mb-1"></i><span class="text-[11px]">尾帧</span>
+                        </div>
+                    </div>
+                    <textarea id="prompt-input" rows="3" class="flex-1 text-[15px] leading-relaxed outline-none resize-none placeholder-slate-400 bg-transparent pt-2" placeholder="输入文字，描述你想创作的画面内容..."></textarea>
+                </div>
+
+                <!-- 参数设置栏 -->
+                <div class="flex items-center justify-between border-t border-slate-50 pt-4">
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <button class="px-3 py-1.5 rounded-xl border border-slate-200 text-[13px] bg-white hover:bg-slate-50 flex items-center"><i class="fa-solid fa-cube text-slate-700 mr-2"></i>Seedance 1.5 Pro</button>
+
+                        <!-- 比例分辨率下拉 -->
+                        <div class="relative">
+                            <button onclick="toggleDrop('ratio-pop')" class="px-3 py-1.5 rounded-xl border border-slate-200 text-[13px] bg-white hover:bg-slate-50 flex items-center">
+                                <i class="fa-solid fa-expand mr-2"></i><span id="cur-ratio">3:4</span><span class="mx-1 text-slate-300">|</span><span id="cur-res">720P</span><i class="fa-solid fa-chevron-down ml-2 text-[10px] text-slate-400"></i>
+                            </button>
+                            <div id="ratio-pop" class="dropdown-panel glass-card rounded-2xl p-5 shadow-2xl border-slate-200 w-[320px]">
+                                <p class="text-[13px] text-slate-400 mb-4">选择比例</p>
+                                <div class="grid grid-cols-6 gap-2 bg-slate-50 p-1.5 rounded-xl mb-6">
+                                    <div class="ratio-item flex flex-col items-center justify-center py-2 cursor-pointer" onclick="updateRatio(this,'21:9')"><div class="ratio-box w-6 h-3 mb-1"></div><span class="text-[10px]">21:9</span></div>
+                                    <div class="ratio-item flex flex-col items-center justify-center py-2 cursor-pointer" onclick="updateRatio(this,'16:9')"><div class="ratio-box w-6 h-3.5 mb-1"></div><span class="text-[10px]">16:9</span></div>
+                                    <div class="ratio-item flex flex-col items-center justify-center py-2 cursor-pointer" onclick="updateRatio(this,'4:3')"><div class="ratio-box w-5 h-4 mb-1"></div><span class="text-[10px]">4:3</span></div>
+                                    <div class="ratio-item flex flex-col items-center justify-center py-2 cursor-pointer" onclick="updateRatio(this,'1:1')"><div class="ratio-box w-4 h-4 mb-1"></div><span class="text-[10px]">1:1</span></div>
+                                    <div class="ratio-item active flex flex-col items-center justify-center py-2 cursor-pointer" onclick="updateRatio(this,'3:4')"><div class="ratio-box w-3.5 h-5 mb-1"></div><span class="text-[10px]">3:4</span></div>
+                                    <div class="ratio-item flex flex-col items-center justify-center py-2 cursor-pointer" onclick="updateRatio(this,'9:16')"><div class="ratio-box w-3 h-6 mb-1"></div><span class="text-[10px]">9:16</span></div>
+                                </div>
+                                <p class="text-[13px] text-slate-400 mb-3">选择分辨率</p>
+                                <div class="flex bg-slate-50 p-1 rounded-xl">
+                                    <button onclick="updateRes('720P')" id="btn-720" class="flex-1 py-2 rounded-lg bg-white shadow-sm text-[13px] font-bold">720P</button>
+                                    <button onclick="updateRes('1080P')" id="btn-1080" class="flex-1 py-2 text-[13px] text-slate-500">1080P <i class="fa-solid fa-sparkles text-cyan-400 ml-1"></i></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 时长下拉 -->
+                        <div class="relative">
+                            <button onclick="toggleDrop('time-pop')" class="px-3 py-1.5 rounded-xl border border-slate-200 text-[13px] bg-white hover:bg-slate-50 flex items-center">
+                                <i class="fa-regular fa-clock mr-2"></i><span id="cur-time">5s</span><i class="fa-solid fa-chevron-down ml-2 text-[10px] text-slate-400"></i>
+                            </button>
+                            <div id="time-pop" class="dropdown-panel glass-card rounded-2xl overflow-hidden shadow-2xl border-slate-200 w-[220px]">
+                                <p class="px-4 py-3 text-[13px] text-slate-400 border-b">选择视频生成时长</p>
+                                <div class="p-1.5">
+                                    <div onclick="updateTime('5s')" class="time-option active flex items-center justify-between px-4 py-3 rounded-xl mb-1"><span class="text-[14px]">5s</span><i class="fa-solid fa-check check-icon text-blue-500"></i></div>
+                                    <div onclick="updateTime('10s')" class="time-option flex items-center justify-between px-4 py-3 rounded-xl hover:bg-slate-50 mb-1 text-slate-600"><span class="text-[14px]">10s</span><i class="fa-solid fa-check check-icon text-blue-500"></i></div>
+                                    <div onclick="updateTime('12s')" class="time-option flex items-center justify-between px-4 py-3 rounded-xl hover:bg-slate-50 text-slate-600"><span class="text-[14px]">12s</span><i class="fa-solid fa-check check-icon text-blue-500"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="main-gen-btn" onclick="startGen()" class="bg-slate-200 text-white w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95"><i class="fa-solid fa-arrow-up text-xl"></i></button>
+                </div>
+            </div>
+        </section>
+
+        <!-- B. 素材展示区 -->
+        <section class="max-w-7xl mx-auto px-8 pb-20">
+            <div class="flex items-center justify-between mb-8 border-b border-slate-100">
+                <div id="tab-bar" class="flex space-x-8 text-slate-500 font-medium">
+                    <button onclick="switchTab('hot')" class="pb-3 tab-active" data-t="hot">热门推荐</button>
+                    <button onclick="switchTab('policy')" class="pb-3 hover:text-blue-600" data-t="policy">政策解读</button>
+                    <button onclick="switchTab('edu')" class="pb-3 hover:text-blue-600" data-t="edu">科教短片</button>
+                    <button onclick="switchTab('product')" class="pb-3 hover:text-blue-600" data-t="product">商品展示</button>
+                    <button onclick="switchTab('more')" class="pb-3 hover:text-blue-600" data-t="more">更多素材</button>
+                </div>
+                <button onclick="switchTab('my-videos')" class="pb-3 text-slate-500 hover:text-blue-600 font-bold" data-t="my-videos"><i class="fa-solid fa-folder-open mr-1"></i> 我的视频</button>
+            </div>
+
+            <div id="main-grid" class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <!-- 由 JS 填充 -->
+            </div>
+
+            <div id="page-nav" class="flex justify-center mt-12 space-x-2">
+                <button onclick="pexelsPageChange(-1)" class="w-8 h-8 border rounded hover:border-blue-500"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                <button id="page-num-display" class="w-8 h-8 bg-blue-600 text-white rounded font-bold">1</button>
+                <button onclick="pexelsPageChange(1)" class="w-8 h-8 border rounded hover:border-blue-500"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+            </div>
+        </section>
+    </main>
+
+    <!-- ===== 3. 会话页面 (Session Page) — 多轮对话式 ===== -->
+    <main id="session-page" class="bg-slate-50 min-h-[calc(100vh-73px)]" style="display: none; flex-direction: column;">
+        <!-- 顶部操作栏 -->
+        <div class="bg-white border-b px-8 py-3 flex items-center justify-between sticky top-[73px] z-40">
+            <button onclick="goBackHome()" class="text-slate-600 hover:text-blue-600 font-medium flex items-center transition"><i class="fa-solid fa-chevron-left mr-2"></i> 返回首页</button>
+            <div class="flex space-x-3">
+                <button onclick="alert('感谢您的反馈！')" class="px-4 py-1.5 rounded-lg border text-sm hover:bg-slate-50">反馈</button>
+                <button onclick="exportShare()" class="px-5 py-1.5 wps-gradient text-white rounded-lg text-sm shadow-md hover:shadow-lg transition">导出分享</button>
+            </div>
+        </div>
+
+        <!-- 对话区域 -->
+        <div id="conversation-area" class="flex-1 max-w-5xl mx-auto w-full px-8 pt-6 pb-32 space-y-5 overflow-y-auto">
+            <!-- JS 动态填充对话 -->
+        </div>
+
+        <!-- 对话输入框 (固定底部) -->
+        <div class="fixed bottom-0 w-full bg-white border-t p-4 z-50">
+            <div class="max-w-[900px] mx-auto flex items-end space-x-4">
+                <div class="flex-1 bg-slate-50 border rounded-2xl flex items-center px-4 py-2 focus-within:bg-white transition shadow-inner">
+                    <button onclick="document.getElementById('first-frame-input').click()" class="text-slate-400 pr-3 border-r mr-3 text-xs flex items-center hover:text-blue-500 transition"><i class="fa-solid fa-images mr-1.5"></i>首/尾帧</button>
+                    <textarea id="session-input" rows="1" class="flex-1 bg-transparent py-2 outline-none text-sm resize-none" placeholder="输入追加指令，比如：把光影调亮一点..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendFollowUp();}"></textarea>
+                </div>
+                <button onclick="sendFollowUp()" id="session-send-btn" class="wps-gradient text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition"><i class="fa-solid fa-arrow-up"></i></button>
+            </div>
+        </div>
+    </main>
+
+    <!-- ===== 4. 视频预览模态框 ===== -->
+    <div id="video-modal" class="video-modal-overlay" onclick="closeVideoModal(event)">
+        <div class="relative max-w-4xl w-full mx-4" onclick="event.stopPropagation()">
+            <button onclick="closeVideoModal()" class="absolute -top-12 right-0 text-white/70 hover:text-white text-3xl transition">&times;</button>
+            <video id="modal-video" class="w-full rounded-2xl shadow-2xl" controls autoplay></video>
+        </div>
+    </div>
+
+    <script>
+    // ========================================================================
+    // 1. 状态管理
+    // ========================================================================
+    let firstFrameData = null;      // Base64 首帧图片
+    let lastFrameData = null;       // Base64 尾帧图片
+    let conversationRounds = [];    // 当前会话各轮次 [{id, prompt, params, taskId, videoUrl, status}]
+    let roundCounter = 0;
+    let isGenerating = false;
+    let pexelsData = [];            // 当前 Pexels 视频数据缓存
+    let currentPexelsQuery = 'cinematic trending';
+    let currentPexelsPage = 1;
+
+    const STORAGE_KEY = 'wps_video_history';
+    const tabQueries = {
+        'hot': 'cinematic trending',
+        'policy': 'news government official',
+        'edu': 'education science documentary',
+        'product': 'product commercial advertisement',
+        'more': 'creative art abstract'
+    };
+
+    // ========================================================================
+    // 2. 工具函数
+    // ========================================================================
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    function getHistory() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+        catch { return []; }
+    }
+    function saveHistory(list) { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
+
+    function addToHistory(item) {
+        const h = getHistory();
+        const existing = h.findIndex(x => x.id === item.id);
+        if (existing >= 0) h[existing] = item; else h.unshift(item);
+        saveHistory(h);
+    }
+
+    function getCurrentParams() {
+        return {
+            ratio: document.getElementById('cur-ratio').innerText,
+            resolution: document.getElementById('cur-res').innerText,
+            duration: document.getElementById('cur-time').innerText
+        };
+    }
+
+    function nowStr() {
+        return new Date().toLocaleString('zh-CN', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+    }
+
+    // ========================================================================
+    // 3. 导航
+    // ========================================================================
+    function showPage(p) {
+        document.getElementById('home-page').style.display = p === 'home' ? 'block' : 'none';
+        document.getElementById('session-page').style.display = p === 'session' ? 'flex' : 'none';
+        window.scrollTo(0, 0);
+    }
+
+    function goBackHome() {
+        showPage('home');
+    }
+
+    // ========================================================================
+    // 4. 图片上传
+    // ========================================================================
+    function handleFrameUpload(type, input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const base64 = e.target.result;
+            if (type === 'first') {
+                firstFrameData = base64;
+                renderFramePreview('first-frame-box', base64, 'first');
+            } else {
+                lastFrameData = base64;
+                renderFramePreview('last-frame-box', base64, 'last');
+            }
+            // 激活生成按钮样式
+            updateGenBtnState();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function renderFramePreview(boxId, base64, type) {
+        const box = document.getElementById(boxId);
+        box.innerHTML = `<img src="${base64}"><div class="frame-clear" onclick="event.stopPropagation(); clearFrame('${type}')">✕</div>`;
+    }
+
+    function clearFrame(type) {
+        if (type === 'first') {
+            firstFrameData = null;
+            document.getElementById('first-frame-input').value = '';
+            document.getElementById('first-frame-box').innerHTML = '<i class="fa-solid fa-plus text-xl mb-1"></i><span class="text-[11px]">首帧</span>';
+        } else {
+            lastFrameData = null;
+            document.getElementById('last-frame-input').value = '';
+            document.getElementById('last-frame-box').innerHTML = '<i class="fa-solid fa-plus text-xl mb-1"></i><span class="text-[11px]">尾帧</span>';
+        }
+        updateGenBtnState();
+    }
+
+    // ========================================================================
+    // 5. 下拉菜单 & 参数设置
+    // ========================================================================
+    function toggleDrop(id) {
+        const list = ['ratio-pop', 'time-pop'];
+        list.forEach(i => document.getElementById(i).classList.toggle('show', i === id && !document.getElementById(id).classList.contains('show')));
+    }
+
+    function updateRatio(el, v) {
+        document.getElementById('cur-ratio').innerText = v;
+        document.querySelectorAll('.ratio-item').forEach(item => item.classList.remove('active'));
+        el.classList.add('active');
+        toggleDrop();
+    }
+
+    function updateRes(v) {
+        document.getElementById('cur-res').innerText = v;
+        document.getElementById('btn-720').className = v === '720P'
+            ? 'flex-1 py-2 rounded-lg bg-white shadow-sm text-[13px] font-bold'
+            : 'flex-1 py-2 text-[13px] text-slate-500';
+        document.getElementById('btn-1080').className = v === '1080P'
+            ? 'flex-1 py-2 rounded-lg bg-white shadow-sm text-[13px] font-bold'
+            : 'flex-1 py-2 text-[13px] text-slate-500';
+    }
+
+    function updateTime(v) {
+        document.getElementById('cur-time').innerText = v;
+        document.querySelectorAll('.time-option').forEach(el => {
+            const isActive = el.querySelector('span').innerText === v;
+            el.classList.toggle('active', isActive);
+        });
+        toggleDrop();
+    }
+
+    // 生成按钮状态
+    function updateGenBtnState() {
+        const btn = document.getElementById('main-gen-btn');
+        const hasContent = document.getElementById('prompt-input').value.trim().length > 0 || firstFrameData;
+        btn.className = hasContent
+            ? 'wps-gradient text-white w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 shadow-lg'
+            : 'bg-slate-200 text-white w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95';
+    }
+
+    // ========================================================================
+    // 6. API 调用 — 生成视频
+    // ========================================================================
+    async function callGenerateAPI(prompt, params, imageBase64) {
+        // 构建 content 数组
+        const content = [];
+        // 文本+参数
+        let textCmd = prompt;
+        const dur = params.duration.replace('s', '');
+        textCmd += `  --duration ${dur} --aspect_ratio ${params.ratio} --camerafixed false --watermark true`;
+        content.push({ type: 'text', text: textCmd });
+
+        // 首帧图片（可选）
+        if (imageBase64) {
+            content.push({ type: 'image_url', image_url: { url: imageBase64 } });
+        }
+
+        const reqBody = { model: 'doubao-seedance-1-5-pro-251215', content };
+        console.log('[API] 发送生成请求:', reqBody.content[0].text.substring(0, 80) + '...');
+
+        const res = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reqBody)
+        });
+
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`API ${res.status}: ${errText}`);
+        }
+        return await res.json();
+    }
+
+    // ========================================================================
+    // 7. API 调用 — 轮询任务状态
+    // ========================================================================
+    function extractVideoUrl(data) {
+        // 适配多种可能的响应结构
+        if (data.content && Array.isArray(data.content)) {
+            for (const item of data.content) {
+                if (item.type === 'video_url') return item.video_url?.url || item.url;
+                if (item.video_url) return item.video_url.url || item.video_url;
+            }
+        }
+        if (data.content?.video_url) return data.content.video_url;
+        if (data.output?.video_url) return data.output.video_url;
+        if (data.result?.video_url) return data.result.video_url;
+        if (data.video_url) return data.video_url;
+        return null;
+    }
+
+    async function pollTask(taskId, roundId) {
+        const statusLabels = { queued: '排队中...', running: '视频生成中...', succeeded: '生成完成!', failed: '生成失败' };
+        const maxAttempts = 150; // ~12.5 分钟
+
+        for (let i = 0; i < maxAttempts; i++) {
+            await sleep(5000);
+
+            try {
+                const res = await fetch(`/api/task/${taskId}`);
+                if (!res.ok) {
+                    console.warn('[轮询] 非200响应:', res.status);
+                    continue;
+                }
+                const data = await res.json();
+                const status = data.status || 'unknown';
+                console.log(`[轮询] ${taskId} -> ${status}`);
+
+                // 更新 UI
+                const statusEl = document.getElementById(`status-${roundId}`);
+                const progEl = document.getElementById(`progress-${roundId}`);
+                if (statusEl) statusEl.innerText = statusLabels[status] || status;
+
+                if (status === 'queued' && progEl) progEl.style.width = '15%';
+                if (status === 'running' && progEl) progEl.style.width = `${Math.min(30 + i * 3, 90)}%`;
+
+                if (status === 'succeeded') {
+                    const videoUrl = extractVideoUrl(data);
+                    if (progEl) progEl.style.width = '100%';
+
+                    // 更新 round 数据
+                    const round = conversationRounds.find(r => r.id === roundId);
+                    if (round) { round.videoUrl = videoUrl; round.status = 'succeeded'; }
+
+                    // 保存到历史
+                    addToHistory({ id: roundId, prompt: round?.prompt || '', params: round?.params || {}, taskId, videoUrl, status: 'succeeded', createdAt: new Date().toISOString() });
+
+                    // 渲染视频
+                    setTimeout(() => renderVideoResult(roundId, videoUrl), 600);
+                    return videoUrl;
+                }
+
+                if (status === 'failed') {
+                    const errMsg = data.error?.message || '生成失败，请换个 Prompt 再试';
+                    if (statusEl) statusEl.innerText = '❌ ' + errMsg;
+                    const round = conversationRounds.find(r => r.id === roundId);
+                    if (round) round.status = 'failed';
+                    return null;
+                }
+            } catch (e) {
+                console.warn('[轮询异常]', e.message);
+            }
+        }
+        // 超时
+        const statusEl = document.getElementById(`status-${roundId}`);
+        if (statusEl) statusEl.innerText = '⏱ 轮询超时，请稍后在"我的视频"中查看';
+        return null;
+    }
+
+    // ========================================================================
+    // 8. 视频生成主流程
+    // ========================================================================
+    async function startGen() {
+        if (isGenerating) return;
+        const prompt = document.getElementById('prompt-input').value.trim();
+        if (!prompt && !firstFrameData) {
+            document.getElementById('prompt-input').style.borderColor = '#ef4444';
+            setTimeout(() => document.getElementById('prompt-input').style.borderColor = '', 1000);
+            return;
+        }
+
+        isGenerating = true;
+        const btn = document.getElementById('main-gen-btn');
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+        const params = getCurrentParams();
+        const effectivePrompt = prompt || '根据图片内容生成一段精美的动态视频';
+
+        // 初始化会话
+        conversationRounds = [];
+        const roundId = 'r_' + Date.now();
+        roundCounter++;
+
+        try {
+            const data = await callGenerateAPI(effectivePrompt, params, firstFrameData || null);
+            console.log('[生成] 任务已创建:', data);
+
+            const taskId = data.id || data.task_id || 'unknown';
+            conversationRounds.push({ id: roundId, prompt: effectivePrompt, params, taskId, videoUrl: null, status: 'pending', imageUsed: firstFrameData });
+
+            // 保存到历史记录（先保存为 pending）
+            addToHistory({ id: roundId, prompt: effectivePrompt, params, taskId, videoUrl: null, status: 'pending', createdAt: new Date().toISOString() });
+
+            // 跳转到会话页
+            showPage('session');
+            renderConversation();
+
+            // 开始轮询
+            pollTask(taskId, roundId);
+
+        } catch (err) {
+            console.error('[生成失败]', err);
+            alert('请求失败: ' + err.message + '\n\n请确保已启动本地代理服务器 (node server.js)');
+        } finally {
+            btn.innerHTML = '<i class="fa-solid fa-arrow-up text-xl"></i>';
+            isGenerating = false;
+        }
+    }
+
+    // ========================================================================
+    // 9. 会话页面 — 对话渲染
+    // ========================================================================
+    function renderConversation() {
+        const area = document.getElementById('conversation-area');
+        area.innerHTML = '';
+
+        conversationRounds.forEach((round, idx) => {
+            // 时间戳（第一条显示）
+            if (idx === 0) {
+                area.insertAdjacentHTML('beforeend', `<div class="text-center"><span class="text-xs text-slate-400 bg-slate-100 px-3 py-1 rounded-full">${nowStr()}</span></div>`);
+            }
+
+            // 用户消息
+            area.insertAdjacentHTML('beforeend', `
+                <div class="flex justify-end">
+                    <div class="chat-user px-5 py-4 max-w-[70%]">
+                        ${round.imageUsed ? `<img src="${round.imageUsed}" class="w-16 h-16 object-cover rounded-lg mb-2 border">` : ''}
+                        <p class="text-sm text-slate-800 leading-relaxed">${round.prompt}</p>
+                        <p class="text-[11px] text-slate-400 mt-2"><i class="fa-solid fa-sliders mr-1"></i>${round.params.ratio} | ${round.params.resolution} | ${round.params.duration}</p>
+                    </div>
+                </div>
+            `);
+
+            // AI 响应
+            if (round.status === 'succeeded' && round.videoUrl) {
+                area.insertAdjacentHTML('beforeend', buildVideoCard(round));
+            } else if (round.status === 'failed') {
+                area.insertAdjacentHTML('beforeend', `
+                    <div class="flex justify-start">
+                        <div class="chat-ai p-5 max-w-[80%]">
+                            <p class="text-red-500 text-sm"><i class="fa-solid fa-circle-exclamation mr-2"></i>生成失败，请调整描述后重试</p>
+                        </div>
+                    </div>
+                `);
+            } else {
+                // 加载中
+                area.insertAdjacentHTML('beforeend', `
+                    <div class="flex justify-start" id="ai-msg-${round.id}">
+                        <div class="chat-ai p-6 max-w-[80%] w-full">
+                            <div class="aspect-video bg-slate-900 rounded-2xl flex items-center justify-center mb-4 overflow-hidden" id="video-area-${round.id}">
+                                <div class="text-center">
+                                    <div class="loader-ring mx-auto mb-4"></div>
+                                    <p id="status-${round.id}" class="text-slate-400 text-sm progress-pulse">排队中...</p>
+                                    <div class="w-48 h-1.5 bg-slate-700 rounded-full mt-3 mx-auto overflow-hidden">
+                                        <div id="progress-${round.id}" class="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full transition-all duration-700" style="width:5%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div class="flex space-x-2">
+                                    <button disabled class="px-4 py-2 bg-slate-100 text-slate-400 rounded-xl text-sm cursor-not-allowed"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>重新编辑</button>
+                                    <button disabled class="px-4 py-2 bg-slate-100 text-slate-400 rounded-xl text-sm cursor-not-allowed"><i class="fa-solid fa-rotate-right mr-1"></i>再次生成</button>
+                                </div>
+                                <button disabled class="w-9 h-9 bg-slate-300 text-white rounded-xl flex items-center justify-center cursor-not-allowed"><i class="fa-solid fa-download text-sm"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                `);
+            }
+        });
+
+        // 滚到底部
+        area.scrollTop = area.scrollHeight;
+    }
+
+    function buildVideoCard(round) {
+        return `
+            <div class="flex justify-start" id="ai-msg-${round.id}">
+                <div class="chat-ai overflow-hidden max-w-[80%] w-full">
+                    <div class="aspect-video bg-slate-900 rounded-t-2xl overflow-hidden relative group cursor-pointer" onclick="openVideoModal('${round.videoUrl}')">
+                        <video src="${round.videoUrl}" class="w-full h-full object-cover" muted loop preload="metadata" onmouseenter="this.play()" onmouseleave="this.pause();this.currentTime=0"></video>
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition bg-black/20">
+                            <div class="w-14 h-14 rounded-full bg-white/30 backdrop-blur-md flex items-center justify-center"><i class="fa-solid fa-play text-white text-xl ml-1"></i></div>
+                        </div>
+                    </div>
+                    <div class="p-4 flex items-center justify-between">
+                        <div class="flex space-x-2">
+                            <button onclick="reEdit('${round.id}')" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-bold text-sm hover:bg-blue-100 transition"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>重新编辑</button>
+                            <button onclick="regenerate('${round.id}')" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition"><i class="fa-solid fa-rotate-right mr-1"></i>再次生成</button>
+                        </div>
+                        <button onclick="downloadVideo('${round.id}')" class="w-9 h-9 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg hover:bg-slate-700 transition"><i class="fa-solid fa-download text-sm"></i></button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderVideoResult(roundId, videoUrl) {
+        const container = document.getElementById(`ai-msg-${roundId}`);
+        if (!container) return;
+        const round = conversationRounds.find(r => r.id === roundId);
+        if (round) { round.videoUrl = videoUrl; round.status = 'succeeded'; }
+        container.outerHTML = buildVideoCard(round || { id: roundId, videoUrl });
+    }
+
+    // ========================================================================
+    // 10. 会话操作按钮
+    // ========================================================================
+    function reEdit(roundId) {
+        const round = conversationRounds.find(r => r.id === roundId);
+        if (!round) return;
+        // 回到首页并回填参数
+        showPage('home');
+        document.getElementById('prompt-input').value = round.prompt;
+        updateGenBtnState();
+    }
+
+    async function regenerate(roundId) {
+        const round = conversationRounds.find(r => r.id === roundId);
+        if (!round || isGenerating) return;
+        isGenerating = true;
+
+        const newRoundId = 'r_' + Date.now();
+        roundCounter++;
+        try {
+            const data = await callGenerateAPI(round.prompt, round.params, round.imageUsed || null);
+            const taskId = data.id || data.task_id || 'unknown';
+            conversationRounds.push({ id: newRoundId, prompt: round.prompt, params: round.params, taskId, videoUrl: null, status: 'pending', imageUsed: round.imageUsed });
+            addToHistory({ id: newRoundId, prompt: round.prompt, params: round.params, taskId, videoUrl: null, status: 'pending', createdAt: new Date().toISOString() });
+            renderConversation();
+            pollTask(taskId, newRoundId);
+        } catch (err) {
+            alert('再次生成失败: ' + err.message);
+        } finally {
+            isGenerating = false;
+        }
+    }
+
+    async function downloadVideo(roundId) {
+        const round = conversationRounds.find(r => r.id === roundId);
+        if (!round?.videoUrl) { alert('视频还未准备好'); return; }
+        try {
+            // 通过代理下载，避免跨域
+            const a = document.createElement('a');
+            a.href = `/api/proxy-download?url=${encodeURIComponent(round.videoUrl)}`;
+            a.download = `wps_video_${roundId}.mp4`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        } catch (e) {
+            window.open(round.videoUrl, '_blank');
+        }
+    }
+
+    function exportShare() {
+        const latestWithVideo = [...conversationRounds].reverse().find(r => r.videoUrl);
+        if (!latestWithVideo) { alert('还没有生成完成的视频可分享'); return; }
+        navigator.clipboard.writeText(latestWithVideo.videoUrl).then(() => {
+            alert('✅ 视频链接已复制到剪贴板！\n\n' + latestWithVideo.videoUrl);
+        }).catch(() => {
+            prompt('请手动复制视频链接：', latestWithVideo.videoUrl);
+        });
+    }
+
+    // ========================================================================
+    // 11. 多轮对话 — 追加指令
+    // ========================================================================
+    async function sendFollowUp() {
+        const input = document.getElementById('session-input');
+        const newPrompt = input.value.trim();
+        if (!newPrompt || isGenerating) return;
+
+        isGenerating = true;
+        input.value = '';
+        const params = conversationRounds.length > 0 ? conversationRounds[conversationRounds.length - 1].params : getCurrentParams();
+
+        const newRoundId = 'r_' + Date.now();
+        roundCounter++;
+
+        // 如果前一轮有视频，可以考虑用最后一帧做参考（这里简化处理，仅发文本）
+        try {
+            const data = await callGenerateAPI(newPrompt, params, null);
+            const taskId = data.id || data.task_id || 'unknown';
+            conversationRounds.push({ id: newRoundId, prompt: newPrompt, params, taskId, videoUrl: null, status: 'pending', imageUsed: null });
+            addToHistory({ id: newRoundId, prompt: newPrompt, params, taskId, videoUrl: null, status: 'pending', createdAt: new Date().toISOString() });
+            renderConversation();
+            pollTask(taskId, newRoundId);
+        } catch (err) {
+            alert('追加指令失败: ' + err.message);
+        } finally {
+            isGenerating = false;
+        }
+    }
+
+    // ========================================================================
+    // 12. 视频模态框
+    // ========================================================================
+    function openVideoModal(url) {
+        const modal = document.getElementById('video-modal');
+        const video = document.getElementById('modal-video');
+        video.src = url;
+        modal.classList.add('active');
+    }
+
+    function closeVideoModal(e) {
+        if (e && e.target !== document.getElementById('video-modal') && !e.target.closest('button')) return;
+        const modal = document.getElementById('video-modal');
+        const video = document.getElementById('modal-video');
+        video.pause();
+        video.src = '';
+        modal.classList.remove('active');
+    }
+
+    // ========================================================================
+    // 13. Pexels 素材墙
+    // ========================================================================
+    async function loadPexelsVideos(query, page) {
+        currentPexelsQuery = query;
+        currentPexelsPage = page || 1;
+        const g = document.getElementById('main-grid');
+        g.innerHTML = '<div class="col-span-4 py-20 text-center"><div class="loader-ring mx-auto mb-4" style="border-top-color:#3b82f6"></div><p class="text-slate-400 text-sm">加载素材中...</p></div>';
+
+        try {
+            const res = await fetch(`/api/pexels/videos?query=${encodeURIComponent(query)}&per_page=8&page=${currentPexelsPage}`);
+            if (!res.ok) throw new Error('Pexels API error');
+            const data = await res.json();
+            pexelsData = data.videos || [];
+            renderPexelsGrid(pexelsData);
+            document.getElementById('page-num-display').innerText = currentPexelsPage;
+        } catch (err) {
+            console.warn('[Pexels] 加载失败:', err.message);
+            // Fallback 静态图
+            const fallbackImgs = ["https://images.unsplash.com/photo-1557683316-973673baf926?w=400","https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400","https://images.unsplash.com/photo-1614850523296-d8c1af93d400?w=400","https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400","https://images.unsplash.com/photo-1526628953301-3e589a6a8b74?w=400","https://images.unsplash.com/photo-1518770660439-4636190af475?w=400","https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400","https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400"];
+            g.innerHTML = fallbackImgs.map(src => `<div class="group aspect-[3/4] bg-slate-200 rounded-2xl overflow-hidden cursor-pointer relative"><img src="${src}" class="w-full h-full object-cover group-hover:scale-110 transition duration-700"><div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-end p-4"><p class="text-white text-xs font-bold">素材示例 (离线模式)</p></div></div>`).join('');
+        }
+    }
+
+    function renderPexelsGrid(videos) {
+        const g = document.getElementById('main-grid');
+        if (!videos.length) {
+            g.innerHTML = '<div class="col-span-4 py-20 text-center text-slate-400"><i class="fa-solid fa-video-slash text-3xl mb-3 block opacity-30"></i><p>暂无相关素材</p></div>';
+            return;
+        }
+        g.innerHTML = videos.map((v, i) => {
+            const thumb = v.image || (v.video_pictures?.[0]?.picture) || '';
+            return `
+                <div class="pexels-card group aspect-[3/4] bg-slate-200 rounded-2xl overflow-hidden cursor-pointer relative" id="pexels-card-${i}">
+                    <img src="${thumb}" class="w-full h-full object-cover group-hover:scale-105 transition duration-700" id="pexels-img-${i}">
+                    <div class="pexels-overlay">
+                        <button onclick="event.stopPropagation(); previewPexels(${i})" class="pexels-btn pexels-btn-preview"><i class="fa-solid fa-expand mr-1.5"></i>预览</button>
+                        <button onclick="event.stopPropagation(); playInCard(${i})" class="pexels-btn pexels-btn-play"><i class="fa-solid fa-play mr-1.5"></i>播放</button>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
+                        <p class="text-white text-[11px] font-medium truncate">${v.user?.name || 'Pexels'}</p>
+                        <p class="text-white/60 text-[10px]">${v.duration ? v.duration + 's' : ''}</p>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function previewPexels(index) {
+        const v = pexelsData[index];
+        if (!v) return;
+        const file = v.video_files?.find(f => f.quality === 'hd') || v.video_files?.[0];
+        if (file) openVideoModal(file.link);
+    }
+
+    function playInCard(index) {
+        const v = pexelsData[index];
+        if (!v) return;
+        const file = v.video_files?.find(f => f.quality === 'sd') || v.video_files?.[0];
+        if (!file) return;
+
+        const card = document.getElementById(`pexels-card-${index}`);
+        const img = document.getElementById(`pexels-img-${index}`);
+
+        // 如果已有视频则切换播放/暂停
+        const existing = card.querySelector('video');
+        if (existing) {
+            existing.paused ? existing.play() : existing.pause();
+            return;
+        }
+
+        const video = document.createElement('video');
+        video.src = file.link;
+        video.autoplay = true;
+        video.loop = true;
+        video.muted = true;
+        video.className = 'absolute inset-0 w-full h-full object-cover z-[1]';
+        video.onclick = (e) => { e.stopPropagation(); video.paused ? video.play() : video.pause(); };
+        img.style.display = 'none';
+        card.insertBefore(video, card.children[1]);
+    }
+
+    function pexelsPageChange(delta) {
+        const newPage = Math.max(1, currentPexelsPage + delta);
+        loadPexelsVideos(currentPexelsQuery, newPage);
+    }
+
+    // ========================================================================
+    // 14. Tab 切换
+    // ========================================================================
+    function switchTab(t) {
+        document.querySelectorAll('[data-t]').forEach(btn => {
+            btn.classList.remove('tab-active');
+            if (btn.dataset.t === t) btn.classList.add('tab-active');
+        });
+
+        const g = document.getElementById('main-grid');
+        const nav = document.getElementById('page-nav');
+
+        if (t === 'my-videos') {
+            nav.style.display = 'none';
+            const history = getHistory();
+            if (history.length === 0) {
+                g.innerHTML = `
+                    <div class="col-span-4 py-20 text-center text-slate-400">
+                        <i class="fa-solid fa-film text-5xl mb-4 block opacity-20"></i>
+                        <p class="text-lg font-semibold text-slate-500">还没有生成过视频</p>
+                        <p class="text-sm mt-2">前往上方输入 Prompt，开始您的第一次 AI 创作吧 ✨</p>
+                    </div>`;
+            } else {
+                g.innerHTML = history.map(item => `
+                    <div onclick="openHistoryItem('${item.id}')" class="group rounded-2xl overflow-hidden border bg-white shadow-sm hover:shadow-lg cursor-pointer transition-shadow">
+                        <div class="aspect-video bg-slate-900 overflow-hidden relative">
+                            ${item.videoUrl
+                                ? `<video src="${item.videoUrl}" class="w-full h-full object-cover" muted preload="metadata" onmouseenter="this.play()" onmouseleave="this.pause();this.currentTime=0"></video>
+                                   <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><div class="w-10 h-10 rounded-full bg-white/30 backdrop-blur flex items-center justify-center"><i class="fa-solid fa-play text-white"></i></div></div>`
+                                : `<div class="w-full h-full flex items-center justify-center"><div class="text-center"><i class="fa-solid fa-hourglass-half text-slate-500 text-2xl mb-2"></i><p class="text-slate-500 text-xs">${item.status === 'pending' ? '生成中...' : '已失败'}</p></div></div>`
+                            }
+                        </div>
+                        <div class="p-3">
+                            <p class="font-bold text-sm truncate text-slate-800">${item.prompt ? item.prompt.substring(0, 28) : '无标题'}...</p>
+                            <p class="text-[10px] text-slate-400 mt-1">${item.createdAt ? new Date(item.createdAt).toLocaleDateString('zh-CN') : ''}</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        } else {
+            nav.style.display = 'flex';
+            const query = tabQueries[t] || 'technology';
+            loadPexelsVideos(query, 1);
+        }
+    }
+
+    function openHistoryItem(id) {
+        const history = getHistory();
+        const item = history.find(h => h.id === id);
+        if (!item) return;
+
+        if (item.videoUrl) {
+            // 有视频 → 构建对话并跳转到 Session
+            conversationRounds = [{ id: item.id, prompt: item.prompt, params: item.params, taskId: item.taskId, videoUrl: item.videoUrl, status: 'succeeded', imageUsed: null }];
+            showPage('session');
+            renderConversation();
+        } else if (item.status === 'pending' && item.taskId) {
+            // 还在生成中 → 恢复轮询
+            conversationRounds = [{ id: item.id, prompt: item.prompt, params: item.params, taskId: item.taskId, videoUrl: null, status: 'pending', imageUsed: null }];
+            showPage('session');
+            renderConversation();
+            pollTask(item.taskId, item.id);
+        }
+    }
+
+    // ========================================================================
+    // 15. 事件监听 & 初始化
+    // ========================================================================
+    document.getElementById('prompt-input').addEventListener('input', updateGenBtnState);
+
+    window.onclick = (e) => {
+        if (!e.target.closest('.relative')) {
+            document.querySelectorAll('.dropdown-panel').forEach(d => d.classList.remove('show'));
+        }
+    };
+
+    window.onload = () => {
+        switchTab('hot');
+    };
+    </script>
+</body>
+</html>
