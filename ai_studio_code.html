@@ -61,13 +61,23 @@
         .time-option.active { background: #f1f5f9; font-weight: 600; }
         .time-option .check-icon { display: none; }
         .time-option.active .check-icon { display: inline; }
+
+        /* 素材展示页 */
+        .material-detail-page { position: fixed; inset: 0; z-index: 9998; background: #f8fafc; display: none; flex-direction: column; animation: fadeIn 0.25s ease; overflow-y: auto; }
+        .material-detail-page.active { display: flex; }
+        .material-detail-close { position: absolute; top: 24px; right: 32px; width: 40px; height: 40px; border-radius: 50%; background: white; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.06); z-index: 10; }
+        .material-detail-close:hover { background: #f1f5f9; transform: rotate(90deg); }
+        .make-same-btn { background: linear-gradient(135deg, #0052cc 0%, #00a3ff 100%); color: white; border: none; padding: 14px 40px; border-radius: 16px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 8px 24px rgba(0,82,204,0.3); }
+        .make-same-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,82,204,0.4); }
+        .make-same-btn:active { transform: translateY(0); }
+        .prompt-card { background: white; border-radius: 20px; padding: 28px; box-shadow: 0 4px 24px rgba(0,0,0,0.04); border: 1px solid #f1f5f9; }
+        .prompt-text-area { background: #f8fafc; border-radius: 14px; padding: 20px; font-size: 15px; line-height: 1.8; color: #334155; border: 1px solid #e2e8f0; min-height: 120px; }
     </style>
 </head>
 <body>
 
     <!-- ===== 隐藏的文件输入 ===== -->
-    <input type="file" id="first-frame-input" accept="image/*" class="hidden" onchange="handleFrameUpload('first', this)">
-    <input type="file" id="last-frame-input" accept="image/*" class="hidden" onchange="handleFrameUpload('last', this)">
+    <input type="file" id="image-upload-input" accept="image/*" class="hidden" onchange="handleImageUpload(this)">
 
     <!-- ===== 1. 全局导航栏 ===== -->
     <nav class="flex items-center justify-between px-8 py-4 bg-white border-b sticky top-0 z-50">
@@ -90,16 +100,10 @@
             <h1 class="text-4xl font-bold text-slate-900 mb-8">WPS AI Video轻松搞定视频</h1>
 
             <div class="bg-white rounded-[2rem] p-5 input-shadow border border-slate-100 text-left relative">
-                <!-- 首尾帧与文本 -->
-                <div class="flex items-start space-x-6 mb-6 px-2 pt-2">
-                    <div class="flex items-center space-x-2 shrink-0">
-                        <div id="first-frame-box" onclick="document.getElementById('first-frame-input').click()" class="frame-box w-[72px] h-[92px] bg-[#f8f9fa] border border-slate-200 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition text-slate-400 transform -rotate-3 shadow-sm">
-                            <i class="fa-solid fa-plus text-xl mb-1"></i><span class="text-[11px]">首帧</span>
-                        </div>
-                        <div class="text-slate-300 mx-0.5"><i class="fa-solid fa-arrow-right-arrow-left text-xs"></i></div>
-                        <div id="last-frame-box" onclick="document.getElementById('last-frame-input').click()" class="frame-box w-[72px] h-[92px] bg-[#f8f9fa] border border-slate-200 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition text-slate-400 transform rotate-3 shadow-sm">
-                            <i class="fa-solid fa-plus text-xl mb-1"></i><span class="text-[11px]">尾帧</span>
-                        </div>
+                <!-- 图片上传与文本 -->
+                <div class="flex items-start space-x-5 mb-6 px-2 pt-2">
+                    <div id="image-upload-box" onclick="document.getElementById('image-upload-input').click()" class="frame-box w-[72px] h-[92px] bg-[#f8f9fa] border border-slate-200 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition text-slate-400 shadow-sm shrink-0">
+                        <i class="fa-solid fa-image text-xl mb-1"></i><span class="text-[11px]">上传图片</span>
                     </div>
                     <textarea id="prompt-input" rows="3" class="flex-1 text-[15px] leading-relaxed outline-none resize-none placeholder-slate-400 bg-transparent pt-2" placeholder="输入文字，描述你想创作的画面内容..."></textarea>
                 </div>
@@ -197,7 +201,7 @@
         <div class="fixed bottom-0 w-full bg-white border-t p-4 z-50">
             <div class="max-w-[900px] mx-auto flex items-end space-x-4">
                 <div class="flex-1 bg-slate-50 border rounded-2xl flex items-center px-4 py-2 focus-within:bg-white transition shadow-inner">
-                    <button onclick="document.getElementById('first-frame-input').click()" class="text-slate-400 pr-3 border-r mr-3 text-xs flex items-center hover:text-blue-500 transition"><i class="fa-solid fa-images mr-1.5"></i>首/尾帧</button>
+                    <button onclick="document.getElementById('image-upload-input').click()" class="text-slate-400 pr-3 border-r mr-3 text-xs flex items-center hover:text-blue-500 transition"><i class="fa-solid fa-image mr-1.5"></i>上传图片</button>
                     <textarea id="session-input" rows="1" class="flex-1 bg-transparent py-2 outline-none text-sm resize-none" placeholder="输入追加指令，比如：把光影调亮一点..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendFollowUp();}"></textarea>
                 </div>
                 <button onclick="sendFollowUp()" id="session-send-btn" class="wps-gradient text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition"><i class="fa-solid fa-arrow-up"></i></button>
@@ -205,7 +209,51 @@
         </div>
     </main>
 
-    <!-- ===== 4. 视频预览模态框 ===== -->
+    <!-- ===== 4. 素材展示页 (Material Detail Page) ===== -->
+    <div id="material-detail" class="material-detail-page">
+        <div class="material-detail-close" onclick="closeMaterialDetail()">
+            <i class="fa-solid fa-xmark text-slate-500 text-lg"></i>
+        </div>
+        <div class="flex-1 flex items-center justify-center px-8 py-12">
+            <div class="max-w-6xl w-full flex flex-col lg:flex-row gap-10 items-stretch">
+                <!-- 左侧视频区 -->
+                <div class="flex-1 min-w-0">
+                    <div class="bg-slate-900 rounded-3xl overflow-hidden shadow-2xl aspect-video">
+                        <video id="detail-video" class="w-full h-full object-contain" controls autoplay loop></video>
+                    </div>
+                    <div class="flex items-center justify-between mt-4 px-2">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center text-white text-xs font-bold" id="detail-avatar">P</div>
+                            <div>
+                                <p class="text-sm font-semibold text-slate-800" id="detail-author">Pexels</p>
+                                <p class="text-[11px] text-slate-400" id="detail-meta">来源: Pexels 素材库</p>
+                            </div>
+                        </div>
+                        <span class="text-xs text-slate-400 bg-slate-100 px-3 py-1 rounded-full" id="detail-duration">0s</span>
+                    </div>
+                </div>
+                <!-- 右侧信息区 -->
+                <div class="w-full lg:w-[380px] shrink-0 flex flex-col">
+                    <div class="prompt-card flex-1 flex flex-col">
+                        <h3 class="text-lg font-bold text-slate-800 mb-1"><i class="fa-solid fa-wand-magic-sparkles text-blue-500 mr-2"></i>视频生成提示词</h3>
+                        <p class="text-xs text-slate-400 mb-5">以下 Prompt 可用于 AI 生成类似风格的视频</p>
+                        <div class="prompt-text-area flex-1 mb-6" id="detail-prompt">
+                            这是一段生成视频的提示词
+                        </div>
+                        <button onclick="doMakeSame()" class="make-same-btn w-full flex items-center justify-center">
+                            <i class="fa-solid fa-rocket mr-2"></i> 做同款
+                        </button>
+                    </div>
+                    <div class="mt-4 flex items-center justify-center space-x-6 text-slate-400 text-sm">
+                        <button onclick="copyDetailPrompt()" class="hover:text-blue-500 transition flex items-center"><i class="fa-regular fa-copy mr-1.5"></i>复制提示词</button>
+                        <button onclick="likeDetail()" class="hover:text-red-400 transition flex items-center"><i class="fa-regular fa-heart mr-1.5"></i>收藏</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 5. 视频预览模态框 ===== -->
     <div id="video-modal" class="video-modal-overlay" onclick="closeVideoModal(event)">
         <div class="relative max-w-4xl w-full mx-4" onclick="event.stopPropagation()">
             <button onclick="closeVideoModal()" class="absolute -top-12 right-0 text-white/70 hover:text-white text-3xl transition">&times;</button>
@@ -217,8 +265,7 @@
     // ========================================================================
     // 1. 状态管理
     // ========================================================================
-    let firstFrameData = null;      // Base64 首帧图片
-    let lastFrameData = null;       // Base64 尾帧图片
+    let uploadedImageData = null;   // Base64 上传图片
     let conversationRounds = [];    // 当前会话各轮次 [{id, prompt, params, taskId, videoUrl, status}]
     let roundCounter = 0;
     let isGenerating = false;
@@ -281,40 +328,23 @@
     // ========================================================================
     // 4. 图片上传
     // ========================================================================
-    function handleFrameUpload(type, input) {
+    function handleImageUpload(input) {
         const file = input.files[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = function(e) {
-            const base64 = e.target.result;
-            if (type === 'first') {
-                firstFrameData = base64;
-                renderFramePreview('first-frame-box', base64, 'first');
-            } else {
-                lastFrameData = base64;
-                renderFramePreview('last-frame-box', base64, 'last');
-            }
-            // 激活生成按钮样式
+            uploadedImageData = e.target.result;
+            const box = document.getElementById('image-upload-box');
+            box.innerHTML = `<img src="${uploadedImageData}"><div class="frame-clear" onclick="event.stopPropagation(); clearUploadedImage()">✕</div>`;
             updateGenBtnState();
         };
         reader.readAsDataURL(file);
     }
 
-    function renderFramePreview(boxId, base64, type) {
-        const box = document.getElementById(boxId);
-        box.innerHTML = `<img src="${base64}"><div class="frame-clear" onclick="event.stopPropagation(); clearFrame('${type}')">✕</div>`;
-    }
-
-    function clearFrame(type) {
-        if (type === 'first') {
-            firstFrameData = null;
-            document.getElementById('first-frame-input').value = '';
-            document.getElementById('first-frame-box').innerHTML = '<i class="fa-solid fa-plus text-xl mb-1"></i><span class="text-[11px]">首帧</span>';
-        } else {
-            lastFrameData = null;
-            document.getElementById('last-frame-input').value = '';
-            document.getElementById('last-frame-box').innerHTML = '<i class="fa-solid fa-plus text-xl mb-1"></i><span class="text-[11px]">尾帧</span>';
-        }
+    function clearUploadedImage() {
+        uploadedImageData = null;
+        document.getElementById('image-upload-input').value = '';
+        document.getElementById('image-upload-box').innerHTML = '<i class="fa-solid fa-image text-xl mb-1"></i><span class="text-[11px]">上传图片</span>';
         updateGenBtnState();
     }
 
@@ -355,7 +385,7 @@
     // 生成按钮状态
     function updateGenBtnState() {
         const btn = document.getElementById('main-gen-btn');
-        const hasContent = document.getElementById('prompt-input').value.trim().length > 0 || firstFrameData;
+        const hasContent = document.getElementById('prompt-input').value.trim().length > 0 || uploadedImageData;
         btn.className = hasContent
             ? 'wps-gradient text-white w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 shadow-lg'
             : 'bg-slate-200 text-white w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95';
@@ -476,7 +506,7 @@
     async function startGen() {
         if (isGenerating) return;
         const prompt = document.getElementById('prompt-input').value.trim();
-        if (!prompt && !firstFrameData) {
+        if (!prompt && !uploadedImageData) {
             document.getElementById('prompt-input').style.borderColor = '#ef4444';
             setTimeout(() => document.getElementById('prompt-input').style.borderColor = '', 1000);
             return;
@@ -495,11 +525,11 @@
         roundCounter++;
 
         try {
-            const data = await callGenerateAPI(effectivePrompt, params, firstFrameData || null);
+            const data = await callGenerateAPI(effectivePrompt, params, uploadedImageData || null);
             console.log('[生成] 任务已创建:', data);
 
             const taskId = data.id || data.task_id || 'unknown';
-            conversationRounds.push({ id: roundId, prompt: effectivePrompt, params, taskId, videoUrl: null, status: 'pending', imageUsed: firstFrameData });
+            conversationRounds.push({ id: roundId, prompt: effectivePrompt, params, taskId, videoUrl: null, status: 'pending', imageUsed: uploadedImageData });
 
             // 保存到历史记录（先保存为 pending）
             addToHistory({ id: roundId, prompt: effectivePrompt, params, taskId, videoUrl: null, status: 'pending', createdAt: new Date().toISOString() });
@@ -757,10 +787,10 @@
         g.innerHTML = videos.map((v, i) => {
             const thumb = v.image || (v.video_pictures?.[0]?.picture) || '';
             return `
-                <div class="pexels-card group aspect-[3/4] bg-slate-200 rounded-2xl overflow-hidden cursor-pointer relative" id="pexels-card-${i}">
+                <div class="pexels-card group aspect-[3/4] bg-slate-200 rounded-2xl overflow-hidden cursor-pointer relative" id="pexels-card-${i}" onclick="openMaterialDetail(${i})">
                     <img src="${thumb}" class="w-full h-full object-cover group-hover:scale-105 transition duration-700" id="pexels-img-${i}">
                     <div class="pexels-overlay">
-                        <button onclick="event.stopPropagation(); previewPexels(${i})" class="pexels-btn pexels-btn-preview"><i class="fa-solid fa-expand mr-1.5"></i>预览</button>
+                        <button onclick="event.stopPropagation(); openMaterialDetail(${i})" class="pexels-btn pexels-btn-preview"><i class="fa-solid fa-expand mr-1.5"></i>预览</button>
                         <button onclick="event.stopPropagation(); playInCard(${i})" class="pexels-btn pexels-btn-play"><i class="fa-solid fa-play mr-1.5"></i>播放</button>
                     </div>
                     <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
@@ -772,11 +802,122 @@
         }).join('');
     }
 
-    function previewPexels(index) {
+    // ========================================================================
+    // 13b. 素材展示页 + 做同款
+    // ========================================================================
+    let currentDetailIndex = -1;
+
+    // 为每个分类生成对应的示例提示词池
+    const promptPools = {
+        'cinematic trending': [
+            '电影级镜头缓慢推进，穿过雨后的城市街道，霓虹灯光在地面水洼中倒映，色调偏青蓝冷调，氛围感十足',
+            '黄昏时分，镜头从高空缓缓俯拍，夕阳余晖洒在起伏的山脉上，云海翻涌，光影层次丰富',
+            '慢镜头特写，一颗水滴从花瓣尖端坠落，背景虚化，自然光线透过花瓣形成光晕',
+            '午夜的东京街头，行人匆匆走过十字路口，镜头以延时摄影的方式捕捉城市的脉动',
+            '海边日出，金色光芒逐渐铺满海面，浪花轻柔地拍打沙滩，镜头从低角度仰拍',
+            '森林中的小溪缓缓流淌，阳光透过树叶的缝隙洒下斑驳的光影，氛围宁静而治愈',
+            '繁华都市的航拍画面，车流灯光形成丝绸般的光带，夜色璀璨',
+            '一列复古火车穿越雪山隧道，蒸汽在冷空气中升腾，画面充满怀旧质感'
+        ],
+        'news government official': [
+            '庄严的新闻播报场景，主持人端坐在播报台前，背景是数字地球和动态数据图表',
+            '政务大厅内，工作人员正在为市民办理业务，画面明亮简洁，体现服务型政府形象',
+            '城市规划沙盘的航拍俯视图，建筑模型整齐排列，镜头缓缓推近标志性建筑',
+            '绿色能源政策宣传画面，风力发电机组在蓝天白云下旋转，象征可持续发展',
+            '现代化的智慧城市全景，高楼大厦间穿梭着自动驾驶汽车，科技感十足',
+            '会议室中进行视频连线，屏幕上显示各地代表发言，展现高效治理',
+            '乡村振兴场景，丰收的稻田金黄一片，农民在田间劳作，远处是焕然一新的村庄',
+            '城市河道治理成果展示，曾经的黑臭水体变成清澈的景观河，两岸绿树成荫'
+        ],
+        'education science documentary': [
+            '宇宙深空画面，镜头穿越星云和行星带，展现浩瀚宇宙的壮美景象',
+            '显微镜下的细胞分裂过程，微观世界中生命的诞生充满奇迹感',
+            '教室里学生们认真听课，阳光透过窗户洒在课本上，营造温馨的学习氛围',
+            '化学实验室中，五彩斑斓的液体在烧杯中呈现出奇妙的反应，科学之美',
+            '自然纪录片风格，一只雄鹰展翅翱翔在雪山之巅，镜头以航拍视角跟随',
+            '人体神经系统的三维可视化动画，电信号沿神经纤维快速传导，科技质感',
+            '深海探索画面，潜水器灯光照亮未知的海底，发光水母和深海鱼群出现在镜头中',
+            '图书馆的长廊，书架延伸至远方，暖黄的灯光营造出知识殿堂的氛围'
+        ],
+        'product commercial advertisement': [
+            '高端化妆品特写，瓶身在旋转中折射出流光溢彩的光泽，背景纯净简约',
+            '咖啡从壶中缓缓倒入杯中的慢镜头，泡沫翻涌升腾，暖色调灯光营造氛围',
+            '运动鞋在灯光下缓慢旋转展示，每一个细节纹理清晰可见，动感十足',
+            '新款手机悬浮在半空中360度旋转，金属质感和屏幕画面交替展示',
+            '美食广告画面，新鲜食材在空中翻转落入锅中，水花四溅，色彩鲜艳诱人',
+            '汽车在雨天公路上疾驰，轮胎溅起水花，车灯划破雨幕，画面充满力量感',
+            '珠宝首饰在黑色丝绸背景上缓慢旋转，钻石折射出璀璨光芒',
+            '极简主义家具展示，阳光从落地窗照入，光影在空间中变幻，格调高雅'
+        ],
+        'creative art abstract': [
+            '抽象流体艺术动画，彩色颜料在液体中扩散交融，形成梦幻般的图案',
+            '万花筒般的几何图形不断变换组合，色彩从冷色调渐变为暖色调，充满艺术感',
+            '数字粒子特效，无数光点在黑暗中聚合成人形后再次散开，如同星尘',
+            '水墨在宣纸上晕染扩散的过程，黑白灰层次分明，兼具传统与现代美感',
+            '光影雕塑作品在旋转中展示，光线穿过镂空的金属结构投射出变幻的阴影',
+            '超现实风格场景，巨大的鲸鱼在城市楼宇间缓缓游动，周围漂浮着水泡',
+            '油画笔触动画，梵高风格的星空逐笔绘成，画面充满生动的运动感',
+            '赛博朋克风格的霓虹都市，全息广告在雨夜中闪烁，未来感满满'
+        ]
+    };
+
+    function getPromptForVideo(index) {
+        const pool = promptPools[currentPexelsQuery] || promptPools['cinematic trending'];
+        return pool[index % pool.length];
+    }
+
+    function openMaterialDetail(index) {
         const v = pexelsData[index];
         if (!v) return;
+        currentDetailIndex = index;
+
         const file = v.video_files?.find(f => f.quality === 'hd') || v.video_files?.[0];
-        if (file) openVideoModal(file.link);
+        const detailVideo = document.getElementById('detail-video');
+        detailVideo.src = file ? file.link : '';
+
+        document.getElementById('detail-author').innerText = v.user?.name || 'Pexels Creator';
+        document.getElementById('detail-avatar').innerText = (v.user?.name || 'P')[0].toUpperCase();
+        document.getElementById('detail-duration').innerText = (v.duration || 0) + 's';
+        document.getElementById('detail-prompt').innerText = getPromptForVideo(index);
+
+        document.getElementById('material-detail').classList.add('active');
+    }
+
+    function closeMaterialDetail() {
+        const detailVideo = document.getElementById('detail-video');
+        detailVideo.pause();
+        detailVideo.src = '';
+        document.getElementById('material-detail').classList.remove('active');
+        currentDetailIndex = -1;
+    }
+
+    function doMakeSame() {
+        const prompt = document.getElementById('detail-prompt').innerText;
+        closeMaterialDetail();
+        showPage('home');
+        document.getElementById('prompt-input').value = prompt;
+        updateGenBtnState();
+        // 聚焦输入框
+        document.getElementById('prompt-input').focus();
+        // 滚到顶部让用户看到已填充的提示词
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function copyDetailPrompt() {
+        const text = document.getElementById('detail-prompt').innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = event.target.closest('button');
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-check mr-1.5"></i>已复制';
+            btn.classList.add('text-green-500');
+            setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('text-green-500'); }, 1500);
+        });
+    }
+
+    function likeDetail() {
+        const btn = event.target.closest('button');
+        btn.innerHTML = '<i class="fa-solid fa-heart mr-1.5 text-red-400"></i>已收藏';
+        btn.classList.add('text-red-400');
     }
 
     function playInCard(index) {
