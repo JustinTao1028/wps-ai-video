@@ -3,75 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WPS AI Video - 轻松搞定视频</title>
+    <title>WPS AI Video - AI视频创作平台</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" href="logo.png" type="image/png">
     <style>
-        body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background-color: #f8fafc; margin: 0; padding: 0; }
-        .wps-gradient { background: linear-gradient(135deg, #0052cc 0%, #00a3ff 100%); }
-        .glass-card { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border: 1px solid rgba(226, 232, 240, 0.8); }
-        .tab-active { color: #0052cc; border-bottom: 2px solid #0052cc; font-weight: 600; }
-        .input-shadow { box-shadow: 0 10px 40px -10px rgba(0, 82, 204, 0.1); }
+        * { font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+        body { background-color: #0a0e1a; margin: 0; padding: 0; color: #e2e8f0; }
+
+        /* 核心渐变 */
+        .wps-gradient { background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%); }
+        .wps-text-gradient { background: linear-gradient(135deg, #60a5fa, #22d3ee); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+        /* 动态背景网格 */
+        .hero-bg {
+            background: linear-gradient(135deg, #0a0e1a 0%, #111827 40%, #0c1629 70%, #0a0e1a 100%);
+            position: relative; overflow: hidden;
+        }
+        .hero-bg::before {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle at 30% 40%, rgba(37,99,235,0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 60%, rgba(6,182,212,0.06) 0%, transparent 50%),
+                        radial-gradient(circle at 50% 20%, rgba(139,92,246,0.04) 0%, transparent 50%);
+            animation: meshDrift 20s ease-in-out infinite;
+        }
+        @keyframes meshDrift { 0%,100% { transform: translate(0,0) rotate(0deg); } 50% { transform: translate(-2%,1%) rotate(1deg); } }
+
+        /* 玻璃拟态 */
+        .glass-card { background: rgba(255,255,255,0.05); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
+        .glass-card-light { background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border: 1px solid rgba(226,232,240,0.6); }
+
+        /* 输入卡片 */
+        .input-card {
+            background: rgba(255,255,255,0.06); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 20px 60px -15px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+            transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+        }
+        .input-card:focus-within { border-color: rgba(96,165,250,0.3); box-shadow: 0 20px 60px -15px rgba(0,0,0,0.5), 0 0 0 1px rgba(96,165,250,0.2), inset 0 1px 0 rgba(255,255,255,0.06); }
+        .input-shadow { box-shadow: 0 10px 40px -10px rgba(0, 82, 204, 0.15); }
+        .tab-active { color: #60a5fa; border-bottom: 2px solid #60a5fa; font-weight: 600; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
 
-        /* 比例图标样式 */
-        .ratio-box { border: 1.5px solid #cbd5e1; border-radius: 3px; display: inline-block; transition: all 0.2s; }
-        .ratio-item.active .ratio-box { border-color: #1e293b; background: #1e293b; }
-        .ratio-item.active { background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); color: #1e293b; font-weight: 600; }
+        /* 比例图标 */
+        .ratio-box { border: 1.5px solid rgba(148,163,184,0.5); border-radius: 3px; display: inline-block; transition: all 0.2s; }
+        .ratio-item.active .ratio-box { border-color: #60a5fa; background: #60a5fa; }
+        .ratio-item.active { background: rgba(96,165,250,0.1); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); color: #f1f5f9; font-weight: 600; }
 
         /* 下拉面板 */
-        .dropdown-panel { display: none; position: absolute; bottom: calc(100% + 12px); left: 0; z-index: 100; min-width: 300px; animation: slideUp 0.2s ease-out; }
+        .dropdown-panel { display: none; position: absolute; bottom: calc(100% + 12px); left: 0; z-index: 100; min-width: 300px; animation: slideUp 0.2s ease-out; background: rgba(15,23,42,0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); }
         .show { display: block; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* 帧上传预览 */
+        /* 帧上传 */
         .frame-box { position: relative; overflow: hidden; }
         .frame-box img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 0.5rem; }
-        .frame-clear { position: absolute; top: -2px; right: -2px; width: 18px; height: 18px; background: #ef4444; color: white; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 5; border: 2px solid white; line-height: 1; }
-        .frame-clear:hover { background: #dc2626; }
+        .frame-clear { position: absolute; top: -2px; right: -2px; width: 18px; height: 18px; background: #ef4444; color: white; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 5; border: 2px solid rgba(15,23,42,0.9); line-height: 1; }
 
         /* 视频模态框 */
-        .video-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; display: none; align-items: center; justify-content: center; animation: fadeIn 0.2s ease; }
+        .video-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; display: none; align-items: center; justify-content: center; animation: fadeIn 0.2s ease; }
         .video-modal-overlay.active { display: flex; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* 进度条动画 */
+        /* 进度 & 加载 */
         @keyframes progressPulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
         .progress-pulse { animation: progressPulse 2s infinite; }
-
-        /* 旋转加载 */
         @keyframes spin360 { to { transform: rotate(360deg); } }
-        .loader-ring { width: 48px; height: 48px; border: 3px solid rgba(255,255,255,0.15); border-top-color: #3b82f6; border-radius: 50%; animation: spin360 1s linear infinite; }
+        .loader-ring { width: 48px; height: 48px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #60a5fa; border-radius: 50%; animation: spin360 1s linear infinite; }
 
-        /* 对话气泡 */
-        .chat-user { background: linear-gradient(135deg, #eff6ff, #dbeafe); border-radius: 20px 20px 4px 20px; }
-        .chat-ai { background: white; border-radius: 20px 20px 20px 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+        /* 对话 */
+        .chat-user { background: linear-gradient(135deg, rgba(37,99,235,0.15), rgba(6,182,212,0.1)); border-radius: 20px 20px 4px 20px; border: 1px solid rgba(96,165,250,0.15); }
+        .chat-ai { background: rgba(255,255,255,0.04); border-radius: 20px 20px 20px 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.06); }
 
-        /* Pexels卡片悬浮操作 */
-        .pexels-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0) 100%); opacity: 0; transition: opacity 0.3s; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+        /* Pexels卡片 */
+        .pexels-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0) 100%); opacity: 0; transition: opacity 0.3s; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
         .pexels-card:hover .pexels-overlay { opacity: 1; }
+        .pexels-card { border-radius: 16px; overflow: hidden; transition: transform 0.3s, box-shadow 0.3s; }
+        .pexels-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.4); }
         .pexels-btn { padding: 8px 20px; border-radius: 9999px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
         .pexels-btn-preview { background: rgba(255,255,255,0.95); color: #1e293b; }
         .pexels-btn-preview:hover { background: white; transform: scale(1.05); }
-        .pexels-btn-play { background: rgba(255,255,255,0.2); color: white; backdrop-filter: blur(4px); }
-        .pexels-btn-play:hover { background: rgba(255,255,255,0.3); transform: scale(1.05); }
+        .pexels-btn-play { background: rgba(255,255,255,0.15); color: white; backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2); }
+        .pexels-btn-play:hover { background: rgba(255,255,255,0.25); transform: scale(1.05); }
 
-        /* 时长下拉选中态 */
-        .time-option { cursor: pointer; transition: all 0.15s; }
-        .time-option.active { background: #f1f5f9; font-weight: 600; }
+        /* 时长下拉 */
+        .time-option { cursor: pointer; transition: all 0.15s; color: #94a3b8; }
+        .time-option:hover { background: rgba(255,255,255,0.05); }
+        .time-option.active { background: rgba(96,165,250,0.1); font-weight: 600; color: #e2e8f0; }
         .time-option .check-icon { display: none; }
         .time-option.active .check-icon { display: inline; }
 
+        /* 风格网格 */
+        .style-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .style-item { display: flex; flex-direction: column; align-items: center; padding: 10px 4px; border-radius: 12px; cursor: pointer; transition: all 0.2s; border: 2px solid transparent; text-align: center; color: #94a3b8; }
+        .style-item:hover { background: rgba(255,255,255,0.05); }
+        .style-item.active { background: rgba(96,165,250,0.1); border-color: #3b82f6; color: #e2e8f0; }
+        .style-item .style-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 6px; background: rgba(255,255,255,0.05); }
+
+        /* 运镜选中 */
+        .camera-item { cursor: pointer; transition: all 0.15s; color: #94a3b8; }
+        .camera-item:hover { background: rgba(255,255,255,0.05); }
+        .camera-item.active { background: rgba(96,165,250,0.1); font-weight: 600; color: #e2e8f0; }
+        .camera-item .cam-check { display: none; }
+        .camera-item.active .cam-check { display: inline; }
+
+        /* AI 优化按钮 */
+        .ai-enhance-btn { background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; border: none; padding: 5px 14px; border-radius: 12px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+        .ai-enhance-btn:hover { transform: scale(1.05); box-shadow: 0 4px 16px rgba(139,92,246,0.4); }
+        .ai-enhance-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .ai-enhance-spin { animation: spin360 1s linear infinite; display: inline-block; }
+
+        /* Ghost text */
+        .prompt-wrapper { position: relative; flex: 1; }
+        .prompt-ghost {
+            position: absolute; inset: 0; pointer-events: none; white-space: pre-wrap; word-wrap: break-word; overflow: hidden;
+            font-size: 15px; line-height: 1.625; padding-top: 8px; color: transparent; z-index: 0;
+        }
+        .prompt-ghost .ghost-typed { color: transparent; }
+        .prompt-ghost .ghost-suggest { color: rgba(148,163,184,0.5); }
+        #prompt-input { position: relative; z-index: 1; background: transparent; color: #f1f5f9; }
+        #prompt-input::placeholder { color: rgba(148,163,184,0.6); }
+        .ghost-tab-hint {
+            position: absolute; bottom: 2px; right: 0; font-size: 10px; color: rgba(148,163,184,0.6);
+            background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 4px; pointer-events: none;
+            opacity: 0; transition: opacity 0.2s; z-index: 2;
+        }
+        .ghost-tab-hint.visible { opacity: 1; }
+
         /* 素材展示页 */
-        .material-detail-page { position: fixed; inset: 0; z-index: 9998; background: #f8fafc; display: none; flex-direction: column; animation: fadeIn 0.25s ease; overflow-y: auto; }
+        .material-detail-page { position: fixed; inset: 0; z-index: 9998; background: #0f172a; display: none; flex-direction: column; animation: fadeIn 0.25s ease; overflow-y: auto; }
         .material-detail-page.active { display: flex; }
-        .material-detail-close { position: absolute; top: 24px; right: 32px; width: 40px; height: 40px; border-radius: 50%; background: white; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.06); z-index: 10; }
-        .material-detail-close:hover { background: #f1f5f9; transform: rotate(90deg); }
-        .make-same-btn { background: linear-gradient(135deg, #0052cc 0%, #00a3ff 100%); color: white; border: none; padding: 14px 40px; border-radius: 16px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 8px 24px rgba(0,82,204,0.3); }
-        .make-same-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,82,204,0.4); }
+        .material-detail-close { position: absolute; top: 24px; right: 32px; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; z-index: 10; }
+        .material-detail-close:hover { background: rgba(255,255,255,0.1); transform: rotate(90deg); }
+        .make-same-btn { background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%); color: white; border: none; padding: 14px 40px; border-radius: 16px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 8px 24px rgba(37,99,235,0.3); }
+        .make-same-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(37,99,235,0.4); }
         .make-same-btn:active { transform: translateY(0); }
-        .prompt-card { background: white; border-radius: 20px; padding: 28px; box-shadow: 0 4px 24px rgba(0,0,0,0.04); border: 1px solid #f1f5f9; }
-        .prompt-text-area { background: #f8fafc; border-radius: 14px; padding: 20px; font-size: 15px; line-height: 1.8; color: #334155; border: 1px solid #e2e8f0; min-height: 120px; }
+        .prompt-card { background: rgba(255,255,255,0.04); border-radius: 20px; padding: 28px; box-shadow: 0 4px 24px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06); }
+        .prompt-text-area { background: rgba(255,255,255,0.03); border-radius: 14px; padding: 20px; font-size: 15px; line-height: 1.8; color: #94a3b8; border: 1px solid rgba(255,255,255,0.06); min-height: 120px; }
+
+        /* 参数栏按钮统一样式 */
+        .param-btn { padding: 6px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); font-size: 13px; background: rgba(255,255,255,0.04); color: #94a3b8; cursor: pointer; display: flex; align-items: center; transition: all 0.2s; }
+        .param-btn:hover { background: rgba(255,255,255,0.08); color: #e2e8f0; }
+
+        /* 生成按钮 */
+        .gen-btn-active { background: linear-gradient(135deg, #2563eb, #06b6d4) !important; color: white !important; box-shadow: 0 4px 20px rgba(37,99,235,0.4); }
+        .gen-btn-active:hover { box-shadow: 0 6px 28px rgba(37,99,235,0.5); transform: scale(1.05); }
     </style>
 </head>
 <body>
@@ -80,15 +156,18 @@
     <input type="file" id="image-upload-input" accept="image/*" class="hidden" onchange="handleImageUpload(this)">
 
     <!-- ===== 1. 全局导航栏 ===== -->
-    <nav class="flex items-center justify-between px-8 py-4 bg-white border-b sticky top-0 z-50">
-        <div class="flex items-center space-x-2 cursor-pointer" onclick="showPage('home')">
-            <div class="w-8 h-8 wps-gradient rounded-lg flex items-center justify-center text-white font-bold italic shadow-lg">W</div>
-            <span class="text-xl font-bold text-slate-800">WPS AI Video</span>
+    <nav class="flex items-center justify-between px-8 py-3 sticky top-0 z-50" style="background: rgba(10,14,26,0.85); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.06);">
+        <div class="flex items-center space-x-3 cursor-pointer" onclick="showPage('home')">
+            <img src="logo.png" alt="WPS AI Video" class="w-9 h-9" style="filter: drop-shadow(0 0 8px rgba(96,165,250,0.3));">
+            <span class="text-xl font-bold text-white tracking-tight">WPS AI Video</span>
+            <span style="font-size: 10px; padding: 2px 8px; border-radius: 6px; background: linear-gradient(135deg, #2563eb, #06b6d4); color: white; font-weight: 600; letter-spacing: 0.5px;">BETA</span>
         </div>
-        <div class="flex items-center space-x-6 text-sm font-medium text-slate-600">
-            <button onclick="showPage('home')" class="hover:text-blue-600">发现</button>
-            <button onclick="showPage('home'); switchTab('my-videos')" class="hover:text-blue-600">我的作品</button>
-            <div class="w-8 h-8 rounded-full bg-slate-100 border flex items-center justify-center text-slate-400"><i class="fa-solid fa-user text-xs"></i></div>
+        <div class="flex items-center space-x-6 text-sm font-medium text-slate-400">
+            <button onclick="showPage('home')" class="hover:text-white transition">发现</button>
+            <button onclick="showPage('home'); switchTab('my-videos')" class="hover:text-white transition">我的作品</button>
+            <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, #2563eb, #06b6d4);">
+                <i class="fa-solid fa-user text-xs text-white"></i>
+            </div>
         </div>
     </nav>
 
@@ -96,31 +175,48 @@
     <main id="home-page" style="display: block;">
 
         <!-- A. 核心输入区 -->
-        <section class="max-w-[1000px] mx-auto mt-12 mb-16 text-center px-4">
-            <h1 class="text-4xl font-bold text-slate-900 mb-8">WPS AI Video轻松搞定视频</h1>
+        <section class="hero-bg">
+        <div class="max-w-[1000px] mx-auto pt-16 pb-20 text-center px-4 relative">
+            <div class="inline-flex items-center space-x-2 mb-6 px-4 py-2 rounded-full" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);">
+                <i class="fa-solid fa-bolt text-cyan-400 text-xs"></i>
+                <span class="text-xs text-slate-400">基于 Seedance 1.5 Pro · 支持图生视频 & 文生视频</span>
+            </div>
+            <h1 class="text-5xl font-extrabold mb-4 tracking-tight" style="color: white; line-height: 1.2;">用 AI 创造<span class="wps-text-gradient">极致视频</span></h1>
+            <p class="text-slate-500 mb-10 text-base">输入一句描述，生成电影级质感的 AI 视频</p>
 
-            <div class="bg-white rounded-[2rem] p-5 input-shadow border border-slate-100 text-left relative">
+            <div class="input-card rounded-[2rem] p-5 text-left relative">
                 <!-- 图片上传与文本 -->
                 <div class="flex items-start space-x-5 mb-6 px-2 pt-2">
-                    <div id="image-upload-box" onclick="document.getElementById('image-upload-input').click()" class="frame-box w-[72px] h-[92px] bg-[#f8f9fa] border border-slate-200 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition text-slate-400 shadow-sm shrink-0">
+                    <div id="image-upload-box" onclick="document.getElementById('image-upload-input').click()" class="frame-box w-[72px] h-[92px] rounded-lg flex flex-col items-center justify-center cursor-pointer transition shrink-0" style="background: rgba(255,255,255,0.04); border: 1px dashed rgba(148,163,184,0.3); color: rgba(148,163,184,0.6);" onmouseover="this.style.borderColor='rgba(96,165,250,0.4)';this.style.color='#60a5fa'" onmouseout="this.style.borderColor='rgba(148,163,184,0.3)';this.style.color='rgba(148,163,184,0.6)'">
                         <i class="fa-solid fa-image text-xl mb-1"></i><span class="text-[11px]">上传图片</span>
                     </div>
-                    <textarea id="prompt-input" rows="3" class="flex-1 text-[15px] leading-relaxed outline-none resize-none placeholder-slate-400 bg-transparent pt-2" placeholder="输入文字，描述你想创作的画面内容..."></textarea>
+                    <div class="flex-1 flex flex-col">
+                        <div class="prompt-wrapper">
+                            <div id="prompt-ghost" class="prompt-ghost"></div>
+                            <textarea id="prompt-input" rows="3" class="w-full text-[15px] leading-relaxed outline-none resize-none pt-2" placeholder="描述你想创作的视频画面，例如：夕阳下海边的女孩在奔跑..." oninput="onPromptInput()" onkeydown="onPromptKeydown(event)"></textarea>
+                            <div id="ghost-tab-hint" class="ghost-tab-hint">Tab • 应用补全</div>
+                        </div>
+                        <div class="flex justify-end mt-1">
+                            <button id="ai-enhance-btn" onclick="enhancePrompt()" class="ai-enhance-btn" title="AI 智能扩写提示词">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> AI 优化
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 参数设置栏 -->
-                <div class="flex items-center justify-between border-t border-slate-50 pt-4">
+                <div class="flex items-center justify-between pt-4" style="border-top: 1px solid rgba(255,255,255,0.06);">
                     <div class="flex flex-wrap gap-2 items-center">
-                        <button class="px-3 py-1.5 rounded-xl border border-slate-200 text-[13px] bg-white hover:bg-slate-50 flex items-center"><i class="fa-solid fa-cube text-slate-700 mr-2"></i>Seedance 1.5 Pro</button>
+                        <button class="param-btn"><i class="fa-solid fa-cube mr-2 text-cyan-400"></i>Seedance 1.5 Pro</button>
 
                         <!-- 比例分辨率下拉 -->
                         <div class="relative">
-                            <button onclick="toggleDrop('ratio-pop')" class="px-3 py-1.5 rounded-xl border border-slate-200 text-[13px] bg-white hover:bg-slate-50 flex items-center">
-                                <i class="fa-solid fa-expand mr-2"></i><span id="cur-ratio">3:4</span><span class="mx-1 text-slate-300">|</span><span id="cur-res">720P</span><i class="fa-solid fa-chevron-down ml-2 text-[10px] text-slate-400"></i>
+                            <button onclick="toggleDrop('ratio-pop')" class="param-btn">
+                                <i class="fa-solid fa-expand mr-2"></i><span id="cur-ratio">3:4</span><span class="mx-1" style="color:rgba(255,255,255,0.15)">|</span><span id="cur-res">720P</span><i class="fa-solid fa-chevron-down ml-2 text-[10px]" style="opacity:0.4"></i>
                             </button>
-                            <div id="ratio-pop" class="dropdown-panel glass-card rounded-2xl p-5 shadow-2xl border-slate-200 w-[320px]">
-                                <p class="text-[13px] text-slate-400 mb-4">选择比例</p>
-                                <div class="grid grid-cols-6 gap-2 bg-slate-50 p-1.5 rounded-xl mb-6">
+                            <div id="ratio-pop" class="dropdown-panel rounded-2xl p-5 shadow-2xl w-[320px]">
+                                <p class="text-[13px] text-slate-500 mb-4">选择比例</p>
+                                <div class="grid grid-cols-6 gap-2 p-1.5 rounded-xl mb-6" style="background: rgba(255,255,255,0.03);">
                                     <div class="ratio-item flex flex-col items-center justify-center py-2 cursor-pointer" onclick="updateRatio(this,'21:9')"><div class="ratio-box w-6 h-3 mb-1"></div><span class="text-[10px]">21:9</span></div>
                                     <div class="ratio-item flex flex-col items-center justify-center py-2 cursor-pointer" onclick="updateRatio(this,'16:9')"><div class="ratio-box w-6 h-3.5 mb-1"></div><span class="text-[10px]">16:9</span></div>
                                     <div class="ratio-item flex flex-col items-center justify-center py-2 cursor-pointer" onclick="updateRatio(this,'4:3')"><div class="ratio-box w-5 h-4 mb-1"></div><span class="text-[10px]">4:3</span></div>
@@ -129,8 +225,8 @@
                                     <div class="ratio-item flex flex-col items-center justify-center py-2 cursor-pointer" onclick="updateRatio(this,'9:16')"><div class="ratio-box w-3 h-6 mb-1"></div><span class="text-[10px]">9:16</span></div>
                                 </div>
                                 <p class="text-[13px] text-slate-400 mb-3">选择分辨率</p>
-                                <div class="flex bg-slate-50 p-1 rounded-xl">
-                                    <button onclick="updateRes('720P')" id="btn-720" class="flex-1 py-2 rounded-lg bg-white shadow-sm text-[13px] font-bold">720P</button>
+                                <div class="flex p-1 rounded-xl" style="background: rgba(255,255,255,0.03);">
+                                    <button onclick="updateRes('720P')" id="btn-720" class="flex-1 py-2 rounded-lg text-[13px] font-bold" style="background: rgba(96,165,250,0.15); color: #60a5fa;">720P</button>
                                     <button onclick="updateRes('1080P')" id="btn-1080" class="flex-1 py-2 text-[13px] text-slate-500">1080P <i class="fa-solid fa-sparkles text-cyan-400 ml-1"></i></button>
                                 </div>
                             </div>
@@ -138,11 +234,11 @@
 
                         <!-- 时长下拉 -->
                         <div class="relative">
-                            <button onclick="toggleDrop('time-pop')" class="px-3 py-1.5 rounded-xl border border-slate-200 text-[13px] bg-white hover:bg-slate-50 flex items-center">
-                                <i class="fa-regular fa-clock mr-2"></i><span id="cur-time">5s</span><i class="fa-solid fa-chevron-down ml-2 text-[10px] text-slate-400"></i>
+                            <button onclick="toggleDrop('time-pop')" class="param-btn">
+                                <i class="fa-regular fa-clock mr-2"></i><span id="cur-time">5s</span><i class="fa-solid fa-chevron-down ml-2 text-[10px]" style="opacity:0.4"></i>
                             </button>
-                            <div id="time-pop" class="dropdown-panel glass-card rounded-2xl overflow-hidden shadow-2xl border-slate-200 w-[220px]">
-                                <p class="px-4 py-3 text-[13px] text-slate-400 border-b">选择视频生成时长</p>
+                            <div id="time-pop" class="dropdown-panel rounded-2xl overflow-hidden shadow-2xl w-[220px]">
+                                <p class="px-4 py-3 text-[13px] text-slate-500" style="border-bottom: 1px solid rgba(255,255,255,0.06);">选择视频生成时长</p>
                                 <div class="p-1.5">
                                     <div onclick="updateTime('5s')" class="time-option active flex items-center justify-between px-4 py-3 rounded-xl mb-1"><span class="text-[14px]">5s</span><i class="fa-solid fa-check check-icon text-blue-500"></i></div>
                                     <div onclick="updateTime('10s')" class="time-option flex items-center justify-between px-4 py-3 rounded-xl hover:bg-slate-50 mb-1 text-slate-600"><span class="text-[14px]">10s</span><i class="fa-solid fa-check check-icon text-blue-500"></i></div>
@@ -150,23 +246,78 @@
                                 </div>
                             </div>
                         </div>
+                        <!-- 风格预设下拉 -->
+                        <div class="relative">
+                            <button onclick="toggleDrop('style-pop')" class="param-btn">
+                                <i class="fa-solid fa-palette mr-2"></i><span id="cur-style">默认</span><i class="fa-solid fa-chevron-down ml-2 text-[10px]" style="opacity:0.4"></i>
+                            </button>
+                            <div id="style-pop" class="dropdown-panel rounded-2xl p-5 shadow-2xl w-[360px]">
+                                <p class="text-[13px] text-slate-500 mb-4">选择视频风格</p>
+                                <div class="style-grid">
+                                    <div class="style-item active" onclick="updateStyle(this, 'default', '默认')">
+                                        <div class="style-icon bg-slate-100">🎞</div><span class="text-[11px]">默认</span>
+                                    </div>
+                                    <div class="style-item" onclick="updateStyle(this, 'cinematic', '电影质感')">
+                                        <div class="style-icon bg-amber-50">🎬</div><span class="text-[11px]">电影质感</span>
+                                    </div>
+                                    <div class="style-item" onclick="updateStyle(this, 'anime', '动漫风')">
+                                        <div class="style-icon bg-pink-50">🌸</div><span class="text-[11px]">动漫风</span>
+                                    </div>
+                                    <div class="style-item" onclick="updateStyle(this, 'ink', '水墨画')">
+                                        <div class="style-icon bg-stone-100">🖌</div><span class="text-[11px]">水墨画</span>
+                                    </div>
+                                    <div class="style-item" onclick="updateStyle(this, 'cyberpunk', '赛博朋克')">
+                                        <div class="style-icon bg-violet-50">🌆</div><span class="text-[11px]">赛博朋克</span>
+                                    </div>
+                                    <div class="style-item" onclick="updateStyle(this, 'oil', '油画风')">
+                                        <div class="style-icon bg-orange-50">🎨</div><span class="text-[11px]">油画风</span>
+                                    </div>
+                                    <div class="style-item" onclick="updateStyle(this, '3d', '3D 渲染')">
+                                        <div class="style-icon bg-cyan-50">💎</div><span class="text-[11px]">3D 渲染</span>
+                                    </div>
+                                    <div class="style-item" onclick="updateStyle(this, 'vintage', '胶片复古')">
+                                        <div class="style-icon bg-yellow-50">📷</div><span class="text-[11px]">胶片复古</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 运镜控制下拉 -->
+                        <div class="relative">
+                            <button onclick="toggleDrop('camera-pop')" class="param-btn">
+                                <i class="fa-solid fa-video mr-2"></i><span id="cur-camera">自由运镜</span><i class="fa-solid fa-chevron-down ml-2 text-[10px]" style="opacity:0.4"></i>
+                            </button>
+                            <div id="camera-pop" class="dropdown-panel rounded-2xl overflow-hidden shadow-2xl w-[260px]">
+                                <p class="px-4 py-3 text-[13px] text-slate-500" style="border-bottom: 1px solid rgba(255,255,255,0.06);">选择运镜方式</p>
+                                <div class="p-1.5">
+                                    <div onclick="updateCamera(this, 'free', '自由运镜')" class="camera-item active flex items-center justify-between px-4 py-3 rounded-xl mb-0.5"><div class="flex items-center"><i class="fa-solid fa-arrows-up-down-left-right text-slate-400 mr-3 w-4"></i><span class="text-[13px]">自由运镜</span></div><i class="fa-solid fa-check cam-check text-blue-500"></i></div>
+                                    <div onclick="updateCamera(this, 'fixed', '固定镜头')" class="camera-item flex items-center justify-between px-4 py-3 rounded-xl mb-0.5"><div class="flex items-center"><i class="fa-solid fa-lock text-slate-400 mr-3 w-4"></i><span class="text-[13px]">固定镜头</span></div><i class="fa-solid fa-check cam-check text-blue-500"></i></div>
+                                    <div onclick="updateCamera(this, 'push', '缓慢推进')" class="camera-item flex items-center justify-between px-4 py-3 rounded-xl mb-0.5"><div class="flex items-center"><i class="fa-solid fa-up-long text-slate-400 mr-3 w-4"></i><span class="text-[13px]">缓慢推进</span></div><i class="fa-solid fa-check cam-check text-blue-500"></i></div>
+                                    <div onclick="updateCamera(this, 'pull', '平滑拉远')" class="camera-item flex items-center justify-between px-4 py-3 rounded-xl mb-0.5"><div class="flex items-center"><i class="fa-solid fa-down-long text-slate-400 mr-3 w-4"></i><span class="text-[13px]">平滑拉远</span></div><i class="fa-solid fa-check cam-check text-blue-500"></i></div>
+                                    <div onclick="updateCamera(this, 'orbit', '环绕拍摄')" class="camera-item flex items-center justify-between px-4 py-3 rounded-xl mb-0.5"><div class="flex items-center"><i class="fa-solid fa-rotate text-slate-400 mr-3 w-4"></i><span class="text-[13px]">环绕拍摄</span></div><i class="fa-solid fa-check cam-check text-blue-500"></i></div>
+                                    <div onclick="updateCamera(this, 'aerial', '航拍俯瞰')" class="camera-item flex items-center justify-between px-4 py-3 rounded-xl mb-0.5"><div class="flex items-center"><i class="fa-solid fa-helicopter text-slate-400 mr-3 w-4"></i><span class="text-[13px]">航拍俯瞰</span></div><i class="fa-solid fa-check cam-check text-blue-500"></i></div>
+                                    <div onclick="updateCamera(this, 'track', '平移跟随')" class="camera-item flex items-center justify-between px-4 py-3 rounded-xl"><div class="flex items-center"><i class="fa-solid fa-person-walking text-slate-400 mr-3 w-4"></i><span class="text-[13px]">平移跟随</span></div><i class="fa-solid fa-check cam-check text-blue-500"></i></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <button id="main-gen-btn" onclick="startGen()" class="bg-slate-200 text-white w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95"><i class="fa-solid fa-arrow-up text-xl"></i></button>
+                    <button id="main-gen-btn" onclick="startGen()" class="w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95" style="background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.3);"><i class="fa-solid fa-arrow-up text-xl"></i></button>
                 </div>
             </div>
+        </div>
         </section>
 
         <!-- B. 素材展示区 -->
-        <section class="max-w-7xl mx-auto px-8 pb-20">
-            <div class="flex items-center justify-between mb-8 border-b border-slate-100">
+        <section class="max-w-7xl mx-auto px-8 pb-20 pt-8" style="background: #0a0e1a;">
+            <div class="flex items-center justify-between mb-8" style="border-bottom: 1px solid rgba(255,255,255,0.06);">
                 <div id="tab-bar" class="flex space-x-8 text-slate-500 font-medium">
                     <button onclick="switchTab('hot')" class="pb-3 tab-active" data-t="hot">热门推荐</button>
-                    <button onclick="switchTab('policy')" class="pb-3 hover:text-blue-600" data-t="policy">政策解读</button>
-                    <button onclick="switchTab('edu')" class="pb-3 hover:text-blue-600" data-t="edu">科教短片</button>
-                    <button onclick="switchTab('product')" class="pb-3 hover:text-blue-600" data-t="product">商品展示</button>
-                    <button onclick="switchTab('more')" class="pb-3 hover:text-blue-600" data-t="more">更多素材</button>
+                    <button onclick="switchTab('policy')" class="pb-3 hover:text-slate-300 transition" data-t="policy">政策解读</button>
+                    <button onclick="switchTab('edu')" class="pb-3 hover:text-slate-300 transition" data-t="edu">科教短片</button>
+                    <button onclick="switchTab('product')" class="pb-3 hover:text-slate-300 transition" data-t="product">商品展示</button>
+                    <button onclick="switchTab('more')" class="pb-3 hover:text-slate-300 transition" data-t="more">更多素材</button>
                 </div>
-                <button onclick="switchTab('my-videos')" class="pb-3 text-slate-500 hover:text-blue-600 font-bold" data-t="my-videos"><i class="fa-solid fa-folder-open mr-1"></i> 我的视频</button>
+                <button onclick="switchTab('my-videos')" class="pb-3 text-slate-500 hover:text-cyan-400 font-bold transition" data-t="my-videos"><i class="fa-solid fa-folder-open mr-1"></i> 我的视频</button>
             </div>
 
             <div id="main-grid" class="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -174,20 +325,20 @@
             </div>
 
             <div id="page-nav" class="flex justify-center mt-12 space-x-2">
-                <button onclick="pexelsPageChange(-1)" class="w-8 h-8 border rounded hover:border-blue-500"><i class="fa-solid fa-chevron-left text-xs"></i></button>
-                <button id="page-num-display" class="w-8 h-8 bg-blue-600 text-white rounded font-bold">1</button>
-                <button onclick="pexelsPageChange(1)" class="w-8 h-8 border rounded hover:border-blue-500"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+                <button onclick="pexelsPageChange(-1)" class="w-8 h-8 rounded" style="border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;" onmouseover="this.style.borderColor='rgba(96,165,250,0.4)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)'"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                <button id="page-num-display" class="w-8 h-8 rounded font-bold" style="background: linear-gradient(135deg, #2563eb, #06b6d4); color: white;">1</button>
+                <button onclick="pexelsPageChange(1)" class="w-8 h-8 rounded" style="border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;" onmouseover="this.style.borderColor='rgba(96,165,250,0.4)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)'"><i class="fa-solid fa-chevron-right text-xs"></i></button>
             </div>
         </section>
     </main>
 
     <!-- ===== 3. 会话页面 (Session Page) — 多轮对话式 ===== -->
-    <main id="session-page" class="bg-slate-50 min-h-[calc(100vh-73px)]" style="display: none; flex-direction: column;">
+    <main id="session-page" class="min-h-[calc(100vh-73px)]" style="display: none; flex-direction: column; background: #0a0e1a;">
         <!-- 顶部操作栏 -->
-        <div class="bg-white border-b px-8 py-3 flex items-center justify-between sticky top-[73px] z-40">
-            <button onclick="goBackHome()" class="text-slate-600 hover:text-blue-600 font-medium flex items-center transition"><i class="fa-solid fa-chevron-left mr-2"></i> 返回首页</button>
+        <div class="px-8 py-3 flex items-center justify-between sticky top-[73px] z-40" style="background: rgba(10,14,26,0.9); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.06);">
+            <button onclick="goBackHome()" class="text-slate-400 hover:text-white font-medium flex items-center transition"><i class="fa-solid fa-chevron-left mr-2"></i> 返回首页</button>
             <div class="flex space-x-3">
-                <button onclick="alert('感谢您的反馈！')" class="px-4 py-1.5 rounded-lg border text-sm hover:bg-slate-50">反馈</button>
+                <button onclick="alert('感谢您的反馈！')" class="px-4 py-1.5 rounded-lg text-sm text-slate-400 hover:text-white transition" style="border: 1px solid rgba(255,255,255,0.1);">反馈</button>
                 <button onclick="exportShare()" class="px-5 py-1.5 wps-gradient text-white rounded-lg text-sm shadow-md hover:shadow-lg transition">导出分享</button>
             </div>
         </div>
@@ -198,11 +349,11 @@
         </div>
 
         <!-- 对话输入框 (固定底部) -->
-        <div class="fixed bottom-0 w-full bg-white border-t p-4 z-50">
+        <div class="fixed bottom-0 w-full p-4 z-50" style="background: rgba(10,14,26,0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.06);">
             <div class="max-w-[900px] mx-auto flex items-end space-x-4">
-                <div class="flex-1 bg-slate-50 border rounded-2xl flex items-center px-4 py-2 focus-within:bg-white transition shadow-inner">
-                    <button onclick="document.getElementById('image-upload-input').click()" class="text-slate-400 pr-3 border-r mr-3 text-xs flex items-center hover:text-blue-500 transition"><i class="fa-solid fa-image mr-1.5"></i>上传图片</button>
-                    <textarea id="session-input" rows="1" class="flex-1 bg-transparent py-2 outline-none text-sm resize-none" placeholder="输入追加指令，比如：把光影调亮一点..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendFollowUp();}"></textarea>
+                <div class="flex-1 rounded-2xl flex items-center px-4 py-2 transition" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);">
+                    <button onclick="document.getElementById('image-upload-input').click()" class="text-slate-500 pr-3 mr-3 text-xs flex items-center hover:text-cyan-400 transition" style="border-right: 1px solid rgba(255,255,255,0.08);"><i class="fa-solid fa-image mr-1.5"></i>上传图片</button>
+                    <textarea id="session-input" rows="1" class="flex-1 bg-transparent py-2 outline-none text-sm resize-none text-slate-200" style="color: #e2e8f0;" placeholder="输入追加指令，比如：把光影调亮一点..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendFollowUp();}"></textarea>
                 </div>
                 <button onclick="sendFollowUp()" id="session-send-btn" class="wps-gradient text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition"><i class="fa-solid fa-arrow-up"></i></button>
             </div>
@@ -271,6 +422,32 @@
     let isGenerating = false;
     let pexelsData = [];            // 当前 Pexels 视频数据缓存
     let currentPexelsQuery = 'cinematic trending';
+    let selectedStyle = 'default';  // 当前选中的风格
+    let selectedCamera = 'free';    // 当前选中的运镜
+
+    // 风格后缀词映射
+    const styleSuffixes = {
+        'default': '',
+        'cinematic': '，电影级画面，色彩分级，浅景深，film grain，cinematic lighting',
+        'anime': '，日本动漫风格，精致的人物绘制，富有表现力的色彩，anime style',
+        'ink': '，中国水墨画风格，笔墨纹理，留白构图，意境深远，Chinese ink painting',
+        'cyberpunk': '，赛博朋克风格，霓虹灯光，雨夜城市，科技感，cyberpunk neon',
+        'oil': '，油画笔触质感，厚重色彩，印象派光影，oil painting texture',
+        '3d': '，3D渲染风格，光滑材质，柔和全局光照，blender render',
+        'vintage': '，胶片摄影风格，暖色调色温，粒子感，微微过曝，vintage film'
+    };
+
+    // 运镜前缀词映射
+    const cameraPrefixes = {
+        'free': '',
+        'fixed': '',
+        'push': 'Slow push in, ',
+        'pull': 'Slowly pull out, ',
+        'orbit': 'Orbit shot around the subject, ',
+        'aerial': 'Aerial top-down view slowly descending, ',
+        'track': 'Tracking shot following the subject, '
+    };
+    const cameraFixed = { 'free': false, 'fixed': true, 'push': false, 'pull': false, 'orbit': false, 'aerial': false, 'track': false };
     let currentPexelsPage = 1;
 
     const STORAGE_KEY = 'wps_video_history';
@@ -352,8 +529,26 @@
     // 5. 下拉菜单 & 参数设置
     // ========================================================================
     function toggleDrop(id) {
-        const list = ['ratio-pop', 'time-pop'];
+        const list = ['ratio-pop', 'time-pop', 'style-pop', 'camera-pop'];
         list.forEach(i => document.getElementById(i).classList.toggle('show', i === id && !document.getElementById(id).classList.contains('show')));
+    }
+
+    // 风格选择
+    function updateStyle(el, key, label) {
+        selectedStyle = key;
+        document.getElementById('cur-style').innerText = label;
+        document.querySelectorAll('.style-item').forEach(item => item.classList.remove('active'));
+        el.classList.add('active');
+        toggleDrop();
+    }
+
+    // 运镜选择
+    function updateCamera(el, key, label) {
+        selectedCamera = key;
+        document.getElementById('cur-camera').innerText = label;
+        document.querySelectorAll('.camera-item').forEach(item => item.classList.remove('active'));
+        el.classList.add('active');
+        toggleDrop();
     }
 
     function updateRatio(el, v) {
@@ -386,9 +581,187 @@
     function updateGenBtnState() {
         const btn = document.getElementById('main-gen-btn');
         const hasContent = document.getElementById('prompt-input').value.trim().length > 0 || uploadedImageData;
-        btn.className = hasContent
-            ? 'wps-gradient text-white w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 shadow-lg'
-            : 'bg-slate-200 text-white w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95';
+        if (hasContent) {
+            btn.className = 'gen-btn-active w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95';
+            btn.style.cssText = '';
+        } else {
+            btn.className = 'w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95';
+            btn.style.cssText = 'background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.3);';
+        }
+    }
+
+    // ========================================================================
+    // 5b. AI Prompt 增强
+    // ========================================================================
+    async function enhancePrompt() {
+        const input = document.getElementById('prompt-input');
+        const text = input.value.trim();
+        if (!text) { input.focus(); return; }
+
+        const btn = document.getElementById('ai-enhance-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner ai-enhance-spin"></i> 优化中...';
+        clearGhostSuggestion();
+
+        try {
+            const res = await fetch('/api/enhance-prompt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: text, style: selectedStyle, camera: selectedCamera })
+            });
+            if (!res.ok) throw new Error('增强接口暂未开通');
+            const data = await res.json();
+            if (data.enhanced) {
+                input.value = data.enhanced;
+                input.style.height = 'auto';
+                input.style.height = input.scrollHeight + 'px';
+                updateGenBtnState();
+            }
+        } catch (err) {
+            alert('Prompt 优化功能暂未开通，请先在火山方舟开通豆包文本模型。');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> AI 优化';
+        }
+    }
+
+    // ========================================================================
+    // 5c. 智能补全 (Ghost Text Autocomplete) — 始终触发，即时响应
+    // ========================================================================
+    let autocompleteTimer = null;
+    let currentSuggestion = '';
+    let lastSuggestionIdx = -1;  // 避免连续重复
+
+    // 关键词匹配词库（优先匹配）
+    const suggestionBank = [
+        { keywords: ['夕阳','日落','黄昏','落日','傍晚'], suffix: '，金色光芒洒满地平线，云层染上温暖的橙红色调' },
+        { keywords: ['日出','朝阳','清晨','黎明','早晨'], suffix: '，天边渐渐泛起淡粉色的光，薄雾缓缓消散' },
+        { keywords: ['海边','海滩','沙滩','大海','海洋','海浪'], suffix: '，浪花轻柔地拍打铺满细沙的海岸，海风裹着咸湿气息' },
+        { keywords: ['城市','都市','大楼','建筑','高楼','街道','马路'], suffix: '，镜头从高空俯瞰，灯光璀璨的天际线在夜色中闪耀' },
+        { keywords: ['森林','树林','树叶','绿色','丛林','树木','林间'], suffix: '，阳光穿过树叶缝隙洒下斑驳光影，氛围宁静而治愈' },
+        { keywords: ['猫','小猫','橘猫','白猫','黑猫','猫咪'], suffix: '，毛茸茸的身体在阳光下微微发亮，慢镜头捕捉每一个微小动作' },
+        { keywords: ['狗','小狗','金毛','柯基','哈士奇','拉布拉多','宠物'], suffix: '，欢快地奔跑在草地上，耳朵随风飘动，充满活力' },
+        { keywords: ['雨','下雨','雨天','雨滴','暴雨','细雨','雨中'], suffix: '，雨滴打在窗户上形成缓慢流淌的水纹，背景虚化成模糊的光斑' },
+        { keywords: ['雪','下雪','雪花','冬天','冬季','寒冷','冰'], suffix: '，雪花缓缓飘落覆盖大地，寂静而美丽的白色世界' },
+        { keywords: ['咖啡','茶','杯子','饮料','奶茶'], suffix: '，蒸汽缓缓升腾，暖黄色灯光营造出温馨治愈的氛围' },
+        { keywords: ['星空','星辰','银河','夜空','月亮','月光'], suffix: '，无数星辰在深蓝色天幕上闪烁，银河横贯天际' },
+        { keywords: ['花','樱花','玫瑰','向日葵','花园','花瓣','花朵','荷花'], suffix: '，花瓣在微风中轻轻摇曳，柔和的光线勾勒出精致的纹理' },
+        { keywords: ['山','山脉','群山','雪山','高山','山峰','山谷'], suffix: '，云雾缭绕在山腰间，镜头缓缓升起展现壮阔的全景' },
+        { keywords: ['女孩','女人','女性','少女','美女'], suffix: '，侧脸特写，发丝在风中飘动，淡淡的光晕勾勒出优美轮廓' },
+        { keywords: ['男孩','男人','男性','少年','帅哥'], suffix: '，逆光剪影，坚毅的轮廓在金色光线中显得格外立体' },
+        { keywords: ['孩子','小孩','儿童','婴儿','宝宝'], suffix: '，纯真的笑脸在柔和的自然光下格外动人，暖色调画面' },
+        { keywords: ['汽车','车','跑车','驾驶','公路','赛车'], suffix: '，在宽阔的公路上飞驰，两侧风景快速后退，充满速度感' },
+        { keywords: ['飞机','飞行','天空','云层','航空'], suffix: '，穿破云层翱翔在蔚蓝天际，阳光在机翼上闪烁' },
+        { keywords: ['舞蹈','跳舞','舞者','芭蕾'], suffix: '，身体优雅地旋转跳跃，光影随动作流转，艺术感满满' },
+        { keywords: ['食物','美食','菜','烹饪','餐厅','蛋糕','面包'], suffix: '，热气缓缓升腾，色泽鲜亮诱人，慢镜头展示每一层细节' },
+        { keywords: ['科技','机器人','未来','人工智能','AI','数码'], suffix: '，全息投影界面在空中展开，蓝色光线流动，科技感十足' },
+        { keywords: ['水','溪流','河流','水滴','湖泊','瀑布','池塘'], suffix: '，水面倒映着周围的景色，波光粼粼，宁静自然' },
+        { keywords: ['火焰','火','篝火','蜡烛','烟花','燃烧'], suffix: '，火苗跳动着温暖的橙色光芒，火星飞溅在黑暗中' },
+        { keywords: ['产品','商品','展示','品牌','包装'], suffix: '，在纯净的背景前缓慢旋转，光线勾勒出精致的细节和材质' },
+        { keywords: ['音乐','乐器','钢琴','吉他','演奏','唱歌'], suffix: '，旋律在空气中流淌，音符仿佛化作可见的光粒子' },
+        { keywords: ['运动','跑步','健身','篮球','足球','游泳'], suffix: '，动态慢镜头捕捉力量与速度的瞬间，汗水在光线中闪闪发亮' },
+        { keywords: ['旅行','旅游','风景','景点','度假','行走'], suffix: '，镜头跟随脚步前行，沿途风景如画卷般徐徐展开' },
+        { keywords: ['古风','古代','古建筑','宫殿','寺庙','中国风'], suffix: '，飞檐翘角在晨雾中若隐若现，东方韵味的光影交织' },
+        { keywords: ['宇宙','太空','星球','地球','火箭','航天'], suffix: '，浩瀚星云旋转闪耀，镜头穿越无垠的宇宙深处' },
+        { keywords: ['动物','鸟','鹰','蝴蝶','鱼','马','鹿'], suffix: '，自然光线下展现优雅的生命姿态，每一帧都充满生命力' },
+        { keywords: ['夜晚','夜景','霓虹','灯光','路灯'], suffix: '，霓虹灯映射出斑斓的色彩，城市在夜幕下散发迷人魅力' },
+        { keywords: ['春天','春','万物','复苏','花开'], suffix: '，嫩绿的新芽破土而出，暖风轻拂大地，生机勃勃' },
+        { keywords: ['夏天','夏','炎热','阳光','泳池'], suffix: '，明亮的阳光透过棕榈叶洒下光斑，空气中弥漫着夏日气息' },
+        { keywords: ['秋天','秋','枫叶','落叶','金色'], suffix: '，金黄色的落叶在风中缓缓飘落，铺满了林间小径' },
+        { keywords: ['书','阅读','图书馆','知识','学习'], suffix: '，翻动书页的特写，文字在柔和灯光下清晰可见' },
+        { keywords: ['手','特写','细节','触摸','指尖'], suffix: '，指尖轻触的瞬间被极致放大，每一个纹理清晰可见' },
+        { keywords: ['玻璃','水晶','透明','折射','光线'], suffix: '，光线穿透折射出彩虹般的色谱，晶莹剔透的质感' },
+        { keywords: ['烟','雾','氤氲','朦胧','迷蒙'], suffix: '，轻烟袅袅升起在空气中扩散，营造出梦幻般的氛围' },
+    ];
+
+    // 通用兜底建议池（无关键词命中时使用）
+    const fallbackSuggestions = [
+        '，画面细腻柔和，光影自然流转，充满电影质感',
+        '，镜头缓缓推进，捕捉每一个细微的变化',
+        '，柔和的自然光洒落，营造出温暖治愈的氛围',
+        '，色调明亮温暖，画面构图精致，层次感分明',
+        '，慢镜头呈现每一个动态细节，画面流畅而优美',
+        '，背景虚化，主体突出，浅景深营造出梦幻感',
+        '，光线从侧面照射，勾勒出轮廓的立体感',
+        '，俯拍视角展现全景，画面大气磅礴',
+        '，逆光拍摄形成金色光晕，画面充满诗意',
+        '，运镜平稳流畅，从远景缓缓过渡到特写',
+        '，暖色调画面，细节丰富，质感突出',
+        '，延时摄影呈现时间的流逝，云彩快速涌动',
+        '，微距镜头捕捉到肉眼难以察觉的精致细节',
+        '，航拍视角从高空缓慢下降，揭示壮观的场景全貌',
+        '，柔焦处理让整个画面如梦似幻，充满意境',
+        '，冷暖色调交替，画面充满戏剧性的张力',
+    ];
+
+    function onPromptInput() {
+        updateGenBtnState();
+        clearGhostSuggestion();
+        if (autocompleteTimer) clearTimeout(autocompleteTimer);
+
+        const text = document.getElementById('prompt-input').value;
+        if (text.trim().length < 2) return;
+
+        // 600ms 后触发补全
+        autocompleteTimer = setTimeout(() => generateSuggestion(text), 600);
+    }
+
+    function onPromptKeydown(e) {
+        if (e.key === 'Tab' && currentSuggestion) {
+            e.preventDefault();
+            const input = document.getElementById('prompt-input');
+            input.value = input.value + currentSuggestion;
+            clearGhostSuggestion();
+            updateGenBtnState();
+            // Tab 应用后，继续触发下一轮补全
+            if (autocompleteTimer) clearTimeout(autocompleteTimer);
+            autocompleteTimer = setTimeout(() => generateSuggestion(input.value), 800);
+        }
+    }
+
+    function generateSuggestion(text) {
+        const trimmed = text.trim();
+        // 1. 优先尝试关键词匹配
+        for (const item of suggestionBank) {
+            for (const kw of item.keywords) {
+                if (trimmed.includes(kw)) {
+                    // 确保建议不与已有内容重复
+                    if (!trimmed.includes(item.suffix.substring(1, 8))) {
+                        showGhostSuggestion(text, item.suffix);
+                        return;
+                    }
+                }
+            }
+        }
+        // 2. 兜底：从通用池中选一个不重复的建议
+        let idx;
+        let attempts = 0;
+        do {
+            idx = Math.floor(Math.random() * fallbackSuggestions.length);
+            attempts++;
+        } while (idx === lastSuggestionIdx && attempts < 5);
+        lastSuggestionIdx = idx;
+        const fb = fallbackSuggestions[idx];
+        if (!trimmed.includes(fb.substring(1, 8))) {
+            showGhostSuggestion(text, fb);
+        }
+    }
+
+    function showGhostSuggestion(typed, suggestion) {
+        currentSuggestion = suggestion;
+        const ghost = document.getElementById('prompt-ghost');
+        ghost.innerHTML = `<span class="ghost-typed">${escapeHtml(typed)}</span><span class="ghost-suggest">${escapeHtml(suggestion)}</span>`;
+        document.getElementById('ghost-tab-hint').classList.add('visible');
+    }
+
+    function clearGhostSuggestion() {
+        currentSuggestion = '';
+        document.getElementById('prompt-ghost').innerHTML = '';
+        document.getElementById('ghost-tab-hint').classList.remove('visible');
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
     // ========================================================================
@@ -397,10 +770,13 @@
     async function callGenerateAPI(prompt, params, imageBase64) {
         // 构建 content 数组
         const content = [];
+        // 应用运镜前缀 + 风格后缀
+        let enrichedPrompt = (cameraPrefixes[selectedCamera] || '') + prompt + (styleSuffixes[selectedStyle] || '');
         // 文本+参数
-        let textCmd = prompt;
+        let textCmd = enrichedPrompt;
         const dur = params.duration.replace('s', '');
-        textCmd += `  --duration ${dur} --aspect_ratio ${params.ratio} --camerafixed false --watermark true`;
+        const camFixed = cameraFixed[selectedCamera] ? 'true' : 'false';
+        textCmd += `  --duration ${dur} --aspect_ratio ${params.ratio} --camerafixed ${camFixed} --watermark true`;
         content.push({ type: 'text', text: textCmd });
 
         // 首帧图片（可选）
@@ -560,16 +936,16 @@
         conversationRounds.forEach((round, idx) => {
             // 时间戳（第一条显示）
             if (idx === 0) {
-                area.insertAdjacentHTML('beforeend', `<div class="text-center"><span class="text-xs text-slate-400 bg-slate-100 px-3 py-1 rounded-full">${nowStr()}</span></div>`);
+                area.insertAdjacentHTML('beforeend', `<div class="text-center"><span class="text-xs px-3 py-1 rounded-full" style="color: rgba(148,163,184,0.6); background: rgba(255,255,255,0.06);">${nowStr()}</span></div>`);
             }
 
             // 用户消息
             area.insertAdjacentHTML('beforeend', `
                 <div class="flex justify-end">
                     <div class="chat-user px-5 py-4 max-w-[70%]">
-                        ${round.imageUsed ? `<img src="${round.imageUsed}" class="w-16 h-16 object-cover rounded-lg mb-2 border">` : ''}
-                        <p class="text-sm text-slate-800 leading-relaxed">${round.prompt}</p>
-                        <p class="text-[11px] text-slate-400 mt-2"><i class="fa-solid fa-sliders mr-1"></i>${round.params.ratio} | ${round.params.resolution} | ${round.params.duration}</p>
+                        ${round.imageUsed ? `<img src="${round.imageUsed}" class="w-16 h-16 object-cover rounded-lg mb-2 border border-blue-500/30">` : ''}
+                        <p class="text-sm leading-relaxed" style="color: #e2e8f0;">${round.prompt}</p>
+                        <p class="text-[11px] mt-2" style="color: rgba(148,163,184,0.7);"><i class="fa-solid fa-sliders mr-1"></i>${round.params.ratio} | ${round.params.resolution} | ${round.params.duration}</p>
                     </div>
                 </div>
             `);
@@ -601,10 +977,10 @@
                             </div>
                             <div class="flex items-center justify-between">
                                 <div class="flex space-x-2">
-                                    <button disabled class="px-4 py-2 bg-slate-100 text-slate-400 rounded-xl text-sm cursor-not-allowed"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>重新编辑</button>
-                                    <button disabled class="px-4 py-2 bg-slate-100 text-slate-400 rounded-xl text-sm cursor-not-allowed"><i class="fa-solid fa-rotate-right mr-1"></i>再次生成</button>
+                                    <button disabled class="px-4 py-2 rounded-xl text-sm cursor-not-allowed" style="background: rgba(255,255,255,0.04); color: rgba(148,163,184,0.4);"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>重新编辑</button>
+                                    <button disabled class="px-4 py-2 rounded-xl text-sm cursor-not-allowed" style="background: rgba(255,255,255,0.04); color: rgba(148,163,184,0.4);"><i class="fa-solid fa-rotate-right mr-1"></i>再次生成</button>
                                 </div>
-                                <button disabled class="w-9 h-9 bg-slate-300 text-white rounded-xl flex items-center justify-center cursor-not-allowed"><i class="fa-solid fa-download text-sm"></i></button>
+                                <button disabled class="w-9 h-9 rounded-xl flex items-center justify-center cursor-not-allowed" style="background: rgba(255,255,255,0.04); color: rgba(148,163,184,0.4);"><i class="fa-solid fa-download text-sm"></i></button>
                             </div>
                         </div>
                     </div>
@@ -628,10 +1004,10 @@
                     </div>
                     <div class="p-4 flex items-center justify-between">
                         <div class="flex space-x-2">
-                            <button onclick="reEdit('${round.id}')" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-bold text-sm hover:bg-blue-100 transition"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>重新编辑</button>
-                            <button onclick="regenerate('${round.id}')" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition"><i class="fa-solid fa-rotate-right mr-1"></i>再次生成</button>
+                            <button onclick="reEdit('${round.id}')" class="px-4 py-2 wps-gradient text-white rounded-xl font-bold text-sm hover:shadow-lg hover:scale-105 transition"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>重新编辑</button>
+                            <button onclick="regenerate('${round.id}')" class="px-4 py-2 rounded-xl font-bold text-sm transition" style="background: rgba(255,255,255,0.1); color: #e2e8f0;" onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'"><i class="fa-solid fa-rotate-right mr-1"></i>再次生成</button>
                         </div>
-                        <button onclick="downloadVideo('${round.id}')" class="w-9 h-9 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg hover:bg-slate-700 transition"><i class="fa-solid fa-download text-sm"></i></button>
+                        <button onclick="downloadVideo('${round.id}')" class="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg transition" style="background: rgba(255,255,255,0.1); color: #e2e8f0;" onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'"><i class="fa-solid fa-download text-sm"></i></button>
                     </div>
                 </div>
             </div>
