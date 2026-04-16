@@ -53,6 +53,21 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
         self._cors_headers()
         self.end_headers()
 
+    def _extract_doubao_text(self, resp_data):
+        """从豆包 /responses API 返回中提取文本（兼容推理模型和普通模型）"""
+        for item in resp_data.get('output', []):
+            # 普通模型: type=message, content=[{type: output_text}]
+            if item.get('type') == 'message':
+                for c in item.get('content', []):
+                    if c.get('type') == 'output_text':
+                        return c.get('text', '')
+            # 推理模型: type=reasoning, summary=[{type: summary_text}]
+            if item.get('type') == 'reasoning':
+                for s in item.get('summary', []):
+                    if s.get('type') == 'summary_text':
+                        return s.get('text', '')
+        return ''
+
     def do_GET(self):
         parsed = urlparse(self.path)
         path = parsed.path
@@ -187,6 +202,53 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
                 self.wfile.write(resp_body)
+                return
+
+            # ---------- POST /api/enhance-prompt ----------
+            if path == '/api/enhance-prompt':
+                content_length = int(self.headers.get('Content-Length', 0))
+                body = json.loads(self.rfile.read(content_length))
+                user_prompt = body.get('prompt', '')
+                print(f"  [代理] Prompt 增强: '{user_prompt[:40]}...'")
+
+                DOUBAO_MODEL = os.environ.get('DOUBAO_MODEL', 'doubao-seed-2-0-lite-260215')
+
+                system_instruction = "你是AI视频提示词专家。将简短描述扩写为50-100字的中文视频Prompt。补充场景、光线、色彩、运镜、质感。只输出结果，不解释不加引号。"
+
+                # 使用 chat/completions 格式（比 /responses 更快产出文本）
+                enhance_body = json.dumps({
+                    "model": DOUBAO_MODEL,
+                    "max_tokens": 500,
+                    "temperature": 0.7,
+                    "messages": [
+                        {"role": "system", "content": system_instruction},
+                        {"role": "user", "content": f"扩写：{user_prompt}"}
+                    ]
+                }).encode()
+
+                url = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions'
+                req = Request(url, data=enhance_body, method='POST', headers={
+                    'Content-Type': 'application/json',
+                    'Authorization': f'Bearer {VOLC_KEY}'
+                })
+                resp = urlopen(req, context=ctx, timeout=30)
+                resp_data = json.loads(resp.read())
+
+                # chat/completions 格式提取
+                enhanced = user_prompt
+                choices = resp_data.get('choices', [])
+                if choices:
+                    msg = choices[0].get('message', {})
+                    enhanced = msg.get('content', user_prompt)
+
+                print(f"  [代理] 增强结果: '{enhanced[:60]}...'")
+
+                result = json.dumps({'enhanced': enhanced.strip()}).encode()
+                self.send_response(200)
+                self._cors_headers()
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(result)
                 return
 
             self.send_response(404)
